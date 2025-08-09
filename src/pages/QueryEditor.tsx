@@ -1,5 +1,28 @@
-import React, { useState } from 'react';
-import { Play, Save, Download, Crown, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Save, Download, Crown, Lock, Wifi, WifiOff, RefreshCw, AlertCircle, Clock, History } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+
+interface WebSocketMessage {
+  type: 'query_result' | 'error';
+  payload: any;
+  duration?: number;
+}
+
+interface SavedQuery {
+  id: number;
+  name: string;
+  query: string;
+  created_at: string;
+}
+
+interface QueryHistoryItem {
+  query: string;
+  timestamp: Date;
+  status: 'success' | 'error';
+  duration: number;
+}
+import { Play, Save, Download, Crown, Lock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -9,16 +32,206 @@ const QueryEditor = () => {
   const [selectedDataset, setSelectedDataset] = useState('core');
   const [results, setResults] = useState<any[]>([]);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [rpcEndpoint, setRpcEndpoint] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [savedQueries, setSavedQueries] = useState<Array<{ id: number; name: string; query: string; created_at: string }>>([]);
+  const [queryHistory, setQueryHistory] = useState<Array<{ query: string; timestamp: Date; status: 'success' | 'error'; duration: number }>>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(30);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  
+  // WebSocket connection for real-time updates
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    // Initialize WebSocket connection when RPC endpoint is set
+    if (rpcEndpoint && !wsRef.current) {
+      const ws = new WebSocket(rpcEndpoint.replace('http', 'ws'));
+      
+      ws.onopen = () => {
+        setIsConnected(true);
+        console.log('WebSocket connected');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        // Handle real-time updates
+        setLastUpdate(new Date());
+        updateResults(data);
+      };
+
+      ws.onclose = () => {
+        setIsConnected(false);
+        // Attempt to reconnect after delay
+        setTimeout(() => {
+          if (rpcEndpoint) {
+            wsRef.current = null;
+          }
+        }, 5000);
+      };
+
+      wsRef.current = ws;
+    }
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [rpcEndpoint]);
+
+  const updateResults = (newData: any) => {
+    setResults(prevResults => {
+      // Update results based on real-time data
+      // This is a placeholder implementation
+      return Array.isArray(newData) ? [...newData, ...prevResults].slice(0, 1000) : prevResults;
+    });
+  };
 
   if (!user) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
+      <div className="min-h-screen">
+        <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Please connect your wallet to access the query editor</h1>
         </div>
       </div>
     );
   }
+
+  // WebSocket connection
+  const connectToRPC = () => {
+    const endpoint = prompt('Enter RPC endpoint URL:', 'ws://localhost:3001');
+    if (endpoint) {
+      try {
+        const ws = new WebSocket(endpoint);
+        
+        ws.onopen = () => {
+          setIsConnected(true);
+          setIsError(false);
+          setErrorMessage('');
+        };
+
+        ws.onclose = () => {
+          setIsConnected(false);
+          setIsError(true);
+          setErrorMessage('Connection lost. Trying to reconnect...');
+          // Attempt to reconnect after 5 seconds
+          setTimeout(connectToRPC, 5000);
+        };
+
+        ws.onerror = (error) => {
+          setIsError(true);
+          setErrorMessage('Connection error: ' + error.toString());
+          setIsConnected(false);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'query_result') {
+              setResults(data.payload);
+              setLastUpdate(new Date());
+              
+              // Add to query history
+              setQueryHistory(prev => [{
+                query,
+                timestamp: new Date(),
+                status: 'success',
+                duration: data.duration || 0
+              }, ...prev]);
+            } else if (data.type === 'error') {
+              setIsError(true);
+              setErrorMessage(data.payload.message);
+              
+              // Add to query history
+              setQueryHistory(prev => [{
+                query,
+                timestamp: new Date(),
+                status: 'error',
+                duration: 0
+              }, ...prev]);
+            }
+          } catch (error) {
+            setIsError(true);
+            setErrorMessage('Failed to parse server response');
+          }
+        };
+
+        return ws;
+      } catch (error) {
+        setIsError(true);
+        setErrorMessage('Failed to connect: ' + error.toString());
+      }
+    }
+  };
+
+  // Save query
+  const saveQuery = async (name: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/queries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          query,
+          userId: user.id
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save query');
+
+      // Refresh saved queries
+      loadSavedQueries();
+    } catch (error) {
+      setIsError(true);
+      setErrorMessage('Failed to save query: ' + error.toString());
+    }
+  };
+
+  // Load saved queries
+  const loadSavedQueries = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/queries/${user.id}`);
+      if (!response.ok) throw new Error('Failed to load queries');
+      
+      const queries = await response.json();
+      setSavedQueries(queries);
+    } catch (error) {
+      setIsError(true);
+      setErrorMessage('Failed to load saved queries: ' + error.toString());
+    }
+  };
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (autoRefresh && isConnected) {
+      intervalId = setInterval(() => {
+        // Re-run the current query
+        if (query.trim()) {
+          // Execute query using WebSocket
+          ws.current?.send(JSON.stringify({
+            type: 'query',
+            payload: { query }
+          }));
+        }
+      }, refreshInterval * 1000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [autoRefresh, refreshInterval, isConnected, query]);
 
   const datasets = [
     { id: 'core', name: 'Starknet Core', description: 'Blocks, transactions, events' },

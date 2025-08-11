@@ -102,11 +102,13 @@ enum BountyStatus { Open, InProgress, Completed, Cancelled, Disputed }
 - **MetaMask** wallet integration
 - **Event listeners** for real-time updates
 - **IPFS** integration for solution storage
+- **Auto Swapper** integration for token conversion
 
 #### Backend Integration
 - **Event indexing** for database synchronization
 - **Webhook endpoints** for contract events
 - **Gas optimization** for batch operations
+- **Auto Swapper API** integration for stable coin conversion
 
 ## Development Environment
 

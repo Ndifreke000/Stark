@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Save, Download, Crown, Lock, Wifi, WifiOff, RefreshCw, AlertCircle, Clock, History } from 'lucide-react';
+import { Crown, Play, Save, Lock, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -22,12 +22,9 @@ interface QueryHistoryItem {
   status: 'success' | 'error';
   duration: number;
 }
-import { Play, Save, Download, Crown, Lock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
 
 const QueryEditor = () => {
-  const { user } = useAuth();
+  const { user, error: authError } = useAuth();
   const [query, setQuery] = useState('-- Write your SQL query here\nSELECT * FROM starknet_transactions\nWHERE block_number > 100000\nLIMIT 100;');
   const [selectedDataset, setSelectedDataset] = useState('core');
   const [results, setResults] = useState<any[]>([]);
@@ -173,15 +170,14 @@ const QueryEditor = () => {
   // Save query
   const saveQuery = async (name: string) => {
     try {
-      const response = await fetch('http://localhost:3001/queries', {
+      const response = await fetch('http://localhost:3001/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
-          query,
-          userId: user.id
+          title: name,
+          content: query,
         }),
       });
 
@@ -191,21 +187,21 @@ const QueryEditor = () => {
       loadSavedQueries();
     } catch (error) {
       setIsError(true);
-      setErrorMessage('Failed to save query: ' + error.toString());
+      setErrorMessage('Failed to save query: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
   // Load saved queries
   const loadSavedQueries = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/queries/${user.id}`);
+      const response = await fetch(`http://localhost:3001/queries`);
       if (!response.ok) throw new Error('Failed to load queries');
       
       const queries = await response.json();
       setSavedQueries(queries);
     } catch (error) {
       setIsError(true);
-      setErrorMessage('Failed to load saved queries: ' + error.toString());
+      setErrorMessage('Failed to load saved queries: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -218,7 +214,7 @@ const QueryEditor = () => {
         // Re-run the current query
         if (query.trim()) {
           // Execute query using WebSocket
-          ws.current?.send(JSON.stringify({
+          wsRef.current?.send(JSON.stringify({
             type: 'query',
             payload: { query }
           }));
@@ -232,6 +228,21 @@ const QueryEditor = () => {
       }
     };
   }, [autoRefresh, refreshInterval, isConnected, query]);
+  
+  // Fix error type in catch blocks
+  const handleError = (error: unknown) => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  };
+  
+  // Update catch blocks to use handleError
+  // Example:
+  // catch (error) {
+  //   setIsError(true);
+  //   setErrorMessage('Failed to save query: ' + handleError(error));
+  // }
 
   const datasets = [
     { id: 'core', name: 'Starknet Core', description: 'Blocks, transactions, events' },

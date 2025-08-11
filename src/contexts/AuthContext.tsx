@@ -14,6 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isConnecting: boolean;
+  error: string | null;
   connectWallet: () => Promise<void>;
   connectGoogle: () => Promise<void>;
   disconnect: () => void;
@@ -33,20 +34,27 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const connectWallet = async () => {
     setIsConnecting(true);
-    // Mock wallet connection
-    setTimeout(() => {
-      setUser({
-        id: '1',
-        address: '0x1234...5678',
-        isPremium: false,
-        queriesUsed: 45,
-        queryLimit: 100,
-      });
+    setError(null);
+    try {
+      // Mock wallet connection
+      setTimeout(() => {
+        setUser({
+          id: '1',
+          address: '0x1234...5678',
+          isPremium: false,
+          queriesUsed: 45,
+          queryLimit: 100,
+        });
+        setIsConnecting(false);
+      }, 1000);
+    } catch (err) {
+      setError('Failed to connect wallet');
       setIsConnecting(false);
-    }, 1000);
+    }
   };
 
   const connectGoogle = async () => {
@@ -61,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const disconnect = () => {
     setUser(null);
+    setError(null);
   };
 
   const updateProfile = (data: Partial<User>) => {
@@ -73,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       isConnecting,
+      error,
       connectWallet,
       connectGoogle,
       disconnect,

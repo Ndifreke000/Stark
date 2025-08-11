@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction, RequestHandler } from 'express
 import { z } from 'zod';
 import { getDatabase } from '../database/schema';
 import { logger } from '../utils/logger';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -37,7 +38,7 @@ router.post('/query', asyncHandler(async (req, res) => {
   
   const result = await db.run(
     'INSERT INTO queries (id, user_id, title, content) VALUES (?, ?, ?, ?)',
-    [crypto.randomUUID(), req.user.id, title, content]
+    [randomUUID(), req.user.id, title, content]
   );
 
   logger.info(`New query created: ${title}`);

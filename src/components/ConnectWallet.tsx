@@ -1,20 +1,47 @@
 import React, { useState } from 'react';
-import { Wallet, Mail } from 'lucide-react';
+import { Wallet, Mail, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ConnectWallet = () => {
-  const { connectWallet, connectGoogle, isConnecting, user } = useAuth();
+  const { connectWallet, connectGoogle, isConnecting, user, error } = useAuth();
   const [showGoogleOption, setShowGoogleOption] = useState(false);
 
   const handleWalletConnect = async () => {
-    await connectWallet();
-    setShowGoogleOption(true);
+    try {
+      await connectWallet();
+      setShowGoogleOption(true);
+    } catch (err) {
+      // Error is handled by AuthContext
+    }
   };
 
   const handleGoogleConnect = async () => {
-    await connectGoogle();
-    setShowGoogleOption(false);
+    try {
+      await connectGoogle();
+      setShowGoogleOption(false);
+    } catch (err) {
+      // Error is handled by AuthContext
+    }
   };
+
+  if (error) {
+    return (
+      <div className="flex items-center space-x-2 text-red-600">
+        <AlertCircle className="h-5 w-5" />
+        <span className="text-sm">{error}</span>
+        {error.includes('MetaMask') && (
+          <a 
+            href="https://metamask.io/download/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline text-sm"
+          >
+            Install MetaMask
+          </a>
+        )}
+      </div>
+    );
+  }
 
   if (showGoogleOption && user && !user.email) {
     return (

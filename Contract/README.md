@@ -1,4 +1,4 @@
-# Stark Smart Contract Development Guide
+npm installnpm install# Stark Smart Contract Development Guide
 
 ## Overview
 Stark is a Web3 bounty platform that enables users to create, manage, and complete bounties using cryptocurrency rewards. This guide provides smart contract developers with the complete architecture and implementation requirements for the Stark platform's smart contracts.

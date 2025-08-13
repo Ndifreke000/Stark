@@ -5,10 +5,15 @@ import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Portfolio from './pages/Portfolio';
 import QueryEditor from './pages/QueryEditor';
+import EnhancedQueryEditor from './pages/EnhancedQueryEditor';
+import DashboardBuilder from './pages/DashboardBuilder';
+import ContractVerification from './pages/ContractVerification';
 import BountyDetail from './pages/BountyDetail';
 import CreateBounty from './pages/CreateBounty';
 import Profile from './pages/Profile';
 import Premium from './pages/Premium';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
 import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
@@ -20,8 +25,13 @@ function App() {
           <main>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/query" element={<QueryEditor />} />
+              <Route path="/query" element={<EnhancedQueryEditor />} />
+              <Route path="/query-basic" element={<QueryEditor />} />
+              <Route path="/dashboard" element={<DashboardBuilder />} />
+              <Route path="/contracts" element={<ContractVerification />} />
               <Route path="/bounty/:id" element={<BountyDetail />} />
               <Route path="/create-bounty" element={<CreateBounty />} />
               <Route path="/profile" element={<Profile />} />

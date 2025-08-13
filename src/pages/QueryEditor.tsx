@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Crown, Play, Save, Lock, Download } from 'lucide-react';
+import { Crown, Play, Save, Lock, Download, Database, BookOpen, Sparkles, History } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import Editor from '@monaco-editor/react';
 
 interface WebSocketMessage {
   type: 'query_result' | 'error';

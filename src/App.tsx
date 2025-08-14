@@ -15,6 +15,7 @@ import Premium from './pages/Premium';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import { AuthProvider } from './contexts/AuthContext';
+import Bounties from './pages/Bounties';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               <Route path="/create-bounty" element={<CreateBounty />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/premium" element={<Premium />} />
+              <Route path="/bounties" element={<Bounties />} />
             </Routes>
           </main>
           <Toaster position="top-right" />

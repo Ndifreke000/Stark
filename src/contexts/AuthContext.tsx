@@ -8,6 +8,13 @@ interface User {
   email?: string;
   name?: string;
   avatar?: string;
+  // Optional profile fields
+  linkedin?: string;
+  twitter?: string;
+  phone?: string;
+  country?: string;
+  portfolioUrl?: string;
+  articleUrl?: string;
   isPremium: boolean;
   queriesUsed: number;
   queryLimit: number;
@@ -110,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           address: starknet.account.address,
           isPremium: false,
           queriesUsed: 0,
-          queryLimit: 100,
+          queryLimit: 150,
           authMethod: 'wallet',
           walletType,
         };
@@ -167,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         avatar: userData.avatar,
         isPremium: userData.isPremium || false,
         queriesUsed: userData.queriesUsed || 0,
-        queryLimit: userData.queryLimit || 100,
+        queryLimit: userData.queryLimit || 150,
         authMethod: 'email',
       };
 
@@ -182,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: 'Demo User',
           isPremium: false,
           queriesUsed: 25,
-          queryLimit: 100,
+          queryLimit: 150,
           authMethod: 'email',
         };
         setUser(mockUser);

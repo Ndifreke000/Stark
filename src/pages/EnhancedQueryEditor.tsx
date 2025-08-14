@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Crown, Play, Save, Lock, Download, Database, BookOpen, Sparkles, History, BarChart3, Share2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 
@@ -39,7 +39,7 @@ interface ContractSchema {
 }
 
 const EnhancedQueryEditor = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const [query, setQuery] = useState(`-- Welcome to StarkAnalytics Query Editor
 -- Query Starknet blockchain data with SQL
 
@@ -61,10 +61,33 @@ LIMIT 100;`);
   const [selectedDataset, setSelectedDataset] = useState('core');
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeTab, setActiveTab] = useState<'schema' | 'history' | 'saved'>('schema');
+  const [sidebarSection, setSidebarSection] = useState<'profile' | 'library' | 'account' | 'usage' | 'create' | 'docs' | 'pricing' | 'more'>('profile');
+  const location = useLocation();
+  const [profileDraft, setProfileDraft] = useState({
+    avatar: user?.avatar || '',
+    name: user?.name || '',
+    email: user?.email || '',
+    linkedin: user?.linkedin || '',
+    twitter: user?.twitter || '',
+    phone: user?.phone || '',
+    country: user?.country || '',
+    portfolioUrl: user?.portfolioUrl || '',
+    articleUrl: user?.articleUrl || '',
+  });
   const [contractSchemas, setContractSchemas] = useState<ContractSchema[]>([]);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string>('');
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('theme') as 'light' | 'dark') || 'light');
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+
+  useEffect(() => {
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   const editorRef = useRef<any>(null);
 
@@ -422,135 +445,309 @@ LIMIT 100;`);
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
-          <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+          <div className="w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                {(['schema', 'saved', 'history'] as const).map((tab) => (
+              <nav className="flex flex-col gap-1">
+                <Link
+                  to="/profile"
+                  className={`w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border ${
+                    location.pathname === '/profile'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>Profile</span>
+                  <span className="opacity-60">→</span>
+                </Link>
+                <Link
+                  to="/portfolio"
+                  className={`w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border ${
+                    location.pathname === '/portfolio'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>Library</span>
+                  <span className="opacity-60">→</span>
+                </Link>
+
+                <div className="relative" onMouseEnter={() => setShowCreateMenu(true)} onMouseLeave={() => setShowCreateMenu(false)}>
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium capitalize transition-colors ${
-                      activeTab === tab
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    onClick={() => setShowCreateMenu(!showCreateMenu)}
+                    className={`w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border ${
+                      showCreateMenu
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700'
                     }`}
                   >
-                    {tab === 'schema' && <Database className="h-4 w-4 inline mr-1" />}
-                    {tab === 'saved' && <Save className="h-4 w-4 inline mr-1" />}
-                    {tab === 'history' && <History className="h-4 w-4 inline mr-1" />}
-                    {tab}
+                    <span>Create</span>
+                    <span className="opacity-60">▾</span>
                   </button>
-                ))}
-              </div>
+                  {showCreateMenu && (
+                    <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
+                      <Link to="/query" className="block px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700">New Query</Link>
+                      <Link to="/dashboard" className="block px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700">New Dashboard</Link>
+                    </div>
+                  )}
+                </div>
+
+                <a
+                  href="https://docs.starknet.io"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
+                >
+                  <span>Docs</span>
+                  <span className="opacity-60">↗</span>
+                </a>
+
+                <Link
+                  to="/premium"
+                  className={`w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border ${
+                    location.pathname === '/premium'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>Usage & Pricing</span>
+                  <span className="opacity-60">→</span>
+                </Link>
+
+                <button
+                  onClick={toggleTheme}
+                  className="w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700"
+                >
+                  <span>Light mode</span>
+                  <span className="opacity-60">⤿</span>
+                </button>
+
+                <Link
+                  to="/"
+                  className={`w-full inline-flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition border ${
+                    location.pathname === '/'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : 'bg-white/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>More</span>
+                  <span className="opacity-60">→</span>
+                </Link>
+              </nav>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              {activeTab === 'schema' && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {sidebarSection === 'profile' && (
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Dataset</h3>
-                    <select
-                      value={selectedDataset}
-                      onChange={(e) => setSelectedDataset(e.target.value)}
-                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      {datasets.map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      {profileDraft.avatar ? (
+                        <img src={profileDraft.avatar} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600" />
+                      )}
+                      <label className="absolute -bottom-1 -right-1 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = URL.createObjectURL(file);
+                              setProfileDraft({ ...profileDraft, avatar: url });
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   </div>
 
-                  {currentDataset && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Tables</h3>
-                      <div className="space-y-2">
-                        {currentDataset.tables.map((table) => (
-                          <div key={table.name} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-sm text-gray-900 dark:text-white">{table.name}</h4>
-                              <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
-                                {table.type}
-                              </span>
-                            </div>
-                            {table.description && (
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{table.description}</p>
-                            )}
-                            <div className="space-y-1">
-                              {table.columns.slice(0, 5).map((column) => (
-                                <div key={column.name} className="flex justify-between text-xs">
-                                  <span className="text-gray-700 dark:text-gray-300">{column.name}</span>
-                                  <span className="text-gray-500 dark:text-gray-400">{column.type}</span>
-                                </div>
-                              ))}
-                              {table.columns.length > 5 && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  +{table.columns.length - 5} more columns
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Name" value={profileDraft.name} onChange={(e) => setProfileDraft({ ...profileDraft, name: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Email" value={profileDraft.email} onChange={(e) => setProfileDraft({ ...profileDraft, email: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="LinkedIn URL" value={profileDraft.linkedin} onChange={(e) => setProfileDraft({ ...profileDraft, linkedin: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Twitter/X URL" value={profileDraft.twitter} onChange={(e) => setProfileDraft({ ...profileDraft, twitter: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Phone" value={profileDraft.phone} onChange={(e) => setProfileDraft({ ...profileDraft, phone: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Country" value={profileDraft.country} onChange={(e) => setProfileDraft({ ...profileDraft, country: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white col-span-2" placeholder="Portfolio URL" value={profileDraft.portfolioUrl} onChange={(e) => setProfileDraft({ ...profileDraft, portfolioUrl: e.target.value })} />
+                    <input className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white col-span-2" placeholder="Article Site URL" value={profileDraft.articleUrl} onChange={(e) => setProfileDraft({ ...profileDraft, articleUrl: e.target.value })} />
+                  </div>
 
-                  {contractSchemas.length > 0 && (
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white mb-2">Contract Tables</h3>
-                      <div className="space-y-2">
-                        {contractSchemas.map((contract) => (
-                          <div key={contract.address} className="border border-green-200 dark:border-green-700 rounded-lg p-3">
-                            <h4 className="font-medium text-sm text-green-800 dark:text-green-200 mb-2">
-                              {contract.name}
-                            </h4>
-                            {contract.tables.map((table) => (
-                              <div key={table.name} className="mb-2 last:mb-0">
-                                <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{table.name}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">{table.description}</div>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'saved' && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium text-gray-900 dark:text-white">Saved Queries</h3>
+                  
+                  <div className="flex justify-end">
                     <button
-                      onClick={loadSavedQueries}
-                      className="text-xs text-blue-600 hover:text-blue-700"
+                      onClick={() => {
+                        if (!user) return;
+                        updateProfile({ ...profileDraft });
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
                     >
-                      Refresh
+                      Save Profile
                     </button>
                   </div>
-                  {savedQueries.map((savedQuery) => (
-                    <div
-                      key={savedQuery.id}
-                      className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                      onClick={() => setQuery(savedQuery.query)}
-                    >
-                      <div className="font-medium text-sm text-gray-900 dark:text-white">{savedQuery.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {new Date(savedQuery.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
 
-              {activeTab === 'history' && (
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">Query History</h3>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Query history will appear here after execution
+              {sidebarSection === 'library' && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Library</h3>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Your saved artifacts in Starklytics.</div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Dashboards</h4>
+                    <div className="space-y-2">
+                      <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">DEX Overview</div>
+                      <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">NFT Market Insights</div>
+                    </div>
                   </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Queries</h4>
+                    <div className="space-y-2">
+                      {savedQueries.length === 0 ? (
+                        <div className="text-xs text-gray-500">No saved queries yet. Save one from the editor toolbar.</div>
+                      ) : (
+                        savedQueries.map((q) => (
+                          <div key={q.id} onClick={() => setQuery(q.query)} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                            {q.name}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sidebarSection === 'account' && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Account</h3>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Manage your Starklytics account.</div>
+                  <div className="space-y-2 text-sm">
+                    <div>Wallet Address</div>
+                    <div className="font-mono break-all p-2 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">{user?.address || '—'}</div>
+                    <div>Email</div>
+                    <div className="p-2 rounded bg-gray-100 dark:bg-gray-700">{user?.email || '—'}</div>
+                    <div>Auth Method</div>
+                    <div className="p-2 rounded bg-gray-100 dark:bg-gray-700">{user?.authMethod || '—'}</div>
+                  </div>
+                </div>
+              )}
+
+              {sidebarSection === 'usage' && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Usage</h3>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Free: 150 queries/month.</div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>{user?.queriesUsed || 0} used</span>
+                      <span>{user?.queryLimit || 150} total</span>
+                    </div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                      <div className="h-2 bg-blue-600 rounded-full" style={{ width: `${Math.min(100, ((user?.queriesUsed || 0) / (user?.queryLimit || 150)) * 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sidebarSection === 'create' && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Create</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setActiveTab('schema')} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">New Query</button>
+                    <button onClick={() => window.location.href = '/dashboard'} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">New Dashboard</button>
+                    <button onClick={() => window.location.href = '/create-bounty'} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">New Bounty</button>
+                    <button onClick={loadSavedQueries} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">Import Query</button>
+                  </div>
+                </div>
+              )}
+
+              {sidebarSection === 'docs' && (
+                <div className="space-y-3 text-sm">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Docs</h3>
+                  <p className="text-gray-600 dark:text-gray-300">Explore Starklytics documentation for datasets, functions, and best practices.</p>
+                  <a href="https://docs.starknet.io" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Starknet Docs</a>
+                  <a href="/" className="text-blue-600 hover:underline">Starklytics Guides (placeholder)</a>
+                </div>
+              )}
+
+              {sidebarSection === 'pricing' && (
+                <div className="space-y-4 text-sm">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Pricing</h3>
+                  <p className="text-gray-600 dark:text-gray-300">Boost your team's Starklytics experience with faster executions, API export, programmatic queries.</p>
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="font-semibold">Free</div>
+                      <div className="text-xs text-gray-500">$0 — Free Forever</div>
+                      <ul className="mt-2 list-disc list-inside space-y-1">
+                        <li><strong>2,500</strong> Credits</li>
+                        <li><strong>100 MB</strong> Storage</li>
+                        <li><strong>1,000</strong> datapoints per Credit</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="font-semibold">Analyst — $45/mo billed annually</div>
+                      <ul className="mt-2 list-disc list-inside space-y-1">
+                        <li><strong>4,000</strong> Credits</li>
+                        <li><strong>1 GB</strong> Storage</li>
+                        <li><strong>1,000</strong> datapoints per Credit</li>
+                        <li>Query Management Endpoints</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="font-semibold">Plus — $349/mo billed annually</div>
+                      <ul className="mt-2 list-disc list-inside space-y-1">
+                        <li><strong>25,000</strong> Credits</li>
+                        <li><strong>15 GB</strong> Storage</li>
+                        <li><strong>5,000</strong> datapoints per Credit</li>
+                        <li>Query Management Endpoints</li>
+                        <li>Large Query Engine</li>
+                        <li>CSV exports</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="font-semibold">Premium — $849/mo billed annually</div>
+                      <ul className="mt-2 list-disc list-inside space-y-1">
+                        <li><strong>100,000</strong> Credits</li>
+                        <li><strong>150 GB</strong> Storage</li>
+                        <li><strong>25,000</strong> datapoints per Credit</li>
+                        <li>Query Management Endpoints</li>
+                        <li>Large Query Engine</li>
+                        <li>CSV exports</li>
+                        <li>Private query views</li>
+                        <li>Private materialized views</li>
+                        <li>Private data uploads</li>
+                      </ul>
+                    </div>
+                    <div className="text-xs text-gray-500">Every Starklytics plan comes with unlimited free teammates, unlimited free executions, and SQL API access. Students get 50% off (placeholder).</div>
+                    <div className="space-y-2">
+                      <div className="font-medium">Credits are how Starklytics usage is measured</div>
+                      <div className="text-gray-600 dark:text-gray-300">Choose between execution performance, programmatic queries, and API export volumes.</div>
+                      <div>
+                        <div className="font-medium">Query engine size</div>
+                        <ul className="list-disc list-inside">
+                          <li>0 credits — Free (times out at 120 seconds)</li>
+                          <li>10 credits — Medium</li>
+                          <li>20 credits — Large</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sidebarSection === 'more' && (
+                <div className="space-y-3 text-sm">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">More</h3>
+                  <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div>Theme: <span className="font-medium">{theme === 'dark' ? 'Dark' : 'Light'}</span></div>
+                    <button onClick={toggleTheme} className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">
+                      {theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Docs', 'Pricing', 'Homepage', 'Blog', 'Status', 'Guides', 'Discord', 'Careers', 'Give feedback', 'Terms & conditions'].map((item) => (
+                      <a key={item} href="#" className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-center">{item}</a>
+                    ))}
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300">Placeholder content for Starklytics pages. These entries can link to full pages when implemented.</p>
                 </div>
               )}
             </div>
@@ -570,9 +767,18 @@ LIMIT 100;`);
                   >
                     <BookOpen className="h-4 w-4" />
                   </button>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Dataset: {currentDataset?.name}
-                  </span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <span>Dataset:</span>
+                    <select
+                      value={selectedDataset}
+                      onChange={(e) => setSelectedDataset(e.target.value)}
+                      className="p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                    >
+                      {datasets.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="flex items-center space-x-2">

@@ -84,27 +84,52 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Build Your Analytics Portfolio
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
+              Starknet Analytics, Reinvented
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Write SQL queries, analyze Starknet data, and earn rewards. Your GitHub for blockchain analytics.
+            <p className="text-lg md:text-2xl text-blue-100/90 mb-8 max-w-3xl mx-auto">
+              Write queries, explore onchain datasets, and earn rewards. Build your reputation with beautiful, actionable analytics.
             </p>
-            
-            <div className="flex flex-wrap justify-center gap-8 text-lg">
-              <div className="flex items-center space-x-2">
-                <Code2 className="h-6 w-6" />
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/query"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-xl font-semibold shadow-sm"
+              >
+                <Code2 className="h-5 w-5" /> Write Queries
+              </Link>
+              <a
+                href="https://docs.starknet.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold border border-white/20"
+              >
+                <ExternalLink className="h-5 w-5" /> Read Starknet Docs
+              </a>
+              <Link
+                to="/bounties"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold border border-white/20"
+              >
+                <Trophy className="h-5 w-5" /> Search Bounties
+              </Link>
+            </div>
+
+            <div className="mt-10 flex flex-wrap justify-center gap-8 text-base">
+              <div className="flex items-center space-x-2 text-blue-100">
+                <Code2 className="h-5 w-5" />
                 <span>Query Onchain Data</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Trophy className="h-6 w-6" />
+              <div className="flex items-center space-x-2 text-blue-100">
+                <Trophy className="h-5 w-5" />
                 <span>Compete for Bounties</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-6 w-6" />
+              <div className="flex items-center space-x-2 text-blue-100">
+                <TrendingUp className="h-5 w-5" />
                 <span>Build Your Reputation</span>
               </div>
             </div>

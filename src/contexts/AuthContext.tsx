@@ -99,17 +99,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const nonce = Date.now().toString();
       const message = `Sign this message to authenticate with StarkAnalytics. Nonce: ${nonce}`;
       
-      // Sign the message for authentication
+      // Sign the message for authentication (StarkNet Typed Data)
       try {
-        const signature = await starknet.account.signMessage({
+        const chainId = await (starknet.provider as any)?.getChainId?.().catch(() => 'SN_SEPOLIA');
+        const typedData: any = {
+          types: {
+            StarkNetDomain: [
+              { name: 'name', type: 'felt' },
+              { name: 'version', type: 'felt' },
+              { name: 'chainId', type: 'felt' },
+            ],
+            Message: [
+              { name: 'content', type: 'felt' },
+              { name: 'nonce', type: 'felt' },
+            ],
+          },
+          primaryType: 'Message',
           domain: {
             name: 'StarkAnalytics',
             version: '1',
+            chainId: chainId || 'SN_SEPOLIA',
           },
           message: {
             content: message,
+            nonce,
           },
-        });
+        };
+
+        const signature = await starknet.account.signMessage(typedData);
 
         // Create user session
         const newUser: User = {
@@ -124,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(newUser);
         setAccount(starknet.account);
-        
+
         // Store session info
         localStorage.setItem('stark_session', JSON.stringify({
           address: starknet.account.address,
@@ -132,7 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           nonce,
           timestamp: Date.now(),
         }));
-
       } catch (signError) {
         throw new Error('Failed to sign authentication message');
       }
@@ -151,53 +167,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      // TODO: Replace with actual API call
+      // Attempt API (optional, may not exist in dev)
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to sign in');
-      }
-
-      const userData = await response.json();
-      
-      const newUser: User = {
-        id: userData.id,
-        email: userData.email,
-        name: userData.name,
-        avatar: userData.avatar,
-        isPremium: userData.isPremium || false,
-        queriesUsed: userData.queriesUsed || 0,
-        queryLimit: userData.queryLimit || 150,
-        authMethod: 'email',
-      };
-
-      setUser(newUser);
-
-    } catch (err) {
-      // Mock implementation for development
-      if (email === 'demo@starkanalytics.com' && password === 'password123') {
-        const mockUser: User = {
-          id: 'demo-user',
-          email: 'demo@starkanalytics.com',
-          name: 'Demo User',
-          isPremium: false,
-          queriesUsed: 25,
-          queryLimit: 150,
+      if (response.ok) {
+        const userData = await response.json();
+        const newUser: User = {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          avatar: userData.avatar,
+          isPremium: userData.isPremium || false,
+          queriesUsed: userData.queriesUsed || 0,
+          queryLimit: userData.queryLimit || 150,
           authMethod: 'email',
         };
-        setUser(mockUser);
-      } else {
-        const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
-        setError(errorMessage);
-        throw new Error(errorMessage);
+        setUser(newUser);
+        return;
       }
+
+      // Fallback to local storage users (dev mode)
+      const saved = localStorage.getItem('stark_users');
+      const users: Array<{ id: string; email: string; name: string; password: string }>
+        = saved ? JSON.parse(saved) : [];
+      const existing = users.find((u) => u.email === email && u.password === password);
+      if (!existing) {
+        // Demo credentials also supported
+        if (email === 'demo@starkanalytics.com' && password === 'password123') {
+          const mockUser: User = {
+            id: 'demo-user',
+            email: 'demo@starkanalytics.com',
+            name: 'Demo User',
+            isPremium: false,
+            queriesUsed: 25,
+            queryLimit: 150,
+            authMethod: 'email',
+          };
+          setUser(mockUser);
+          return;
+        }
+        throw new Error('Invalid email or password');
+      }
+
+      const newUser: User = {
+        id: existing.id,
+        email: existing.email,
+        name: existing.name,
+        isPremium: false,
+        queriesUsed: 0,
+        queryLimit: 150,
+        authMethod: 'email',
+      };
+      setUser(newUser);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setIsConnecting(false);
     }
@@ -208,27 +237,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      // TODO: Replace with actual API call
+      // Attempt API (optional)
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create account');
+      if (response.ok) {
+        // Assume backend handles email verification etc.
+        return;
       }
 
-      // For now, just simulate successful signup
-      // In real implementation, user would need to verify email first
+      // Fallback to local storage mock (dev)
+      const saved = localStorage.getItem('stark_users');
+      const users: Array<{ id: string; email: string; name: string; password: string }>
+        = saved ? JSON.parse(saved) : [];
 
+      if (users.some((u) => u.email === email)) {
+        throw new Error('An account with this email already exists');
+      }
+
+      const id = `user_${Date.now()}`;
+      users.push({ id, email, name, password });
+      localStorage.setItem('stark_users', JSON.stringify(users));
+
+      // Auto sign-in on successful signup (dev UX)
+      const newUser: User = {
+        id,
+        email,
+        name,
+        isPremium: false,
+        queriesUsed: 0,
+        queryLimit: 150,
+        authMethod: 'email',
+      };
+      setUser(newUser);
     } catch (err) {
-      // Mock implementation for development
-      console.log('Mock signup for:', { name, email });
-      // Just simulate success - in real app, would send verification email
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create account';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       setIsConnecting(false);
     }

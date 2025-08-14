@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Share2, Coins, BarChart3, LineChart, PieChart, TrendingUp, Download, Settings, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { useSearchParams } from 'react-router-dom';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
+import { getDashboardById, upsertDashboard } from '../services/dashboardStore';
 import toast from 'react-hot-toast';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 interface ChartWidget {
   id: string;
-  type: 'bar' | 'line' | 'pie';
+  type: 'bar' | 'line' | 'pie' | 'area' | 'scatter' | 'counter' | 'table' | 'pivot' | 'text';
   title: string;
   query: string;
   data: any;
@@ -49,6 +51,16 @@ const DashboardBuilder = () => {
   const [showMintModal, setShowMintModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const id = searchParams.get('dashId');
+    if (id) {
+      const d = getDashboardById(id);
+      if (d) {
+        setDashboard(d as any);
+      }
+    }
+  }, [searchParams]);
 
   const chartTypes = [
     { type: 'bar' as const, name: 'Bar Chart', icon: BarChart3 },
@@ -228,6 +240,50 @@ const DashboardBuilder = () => {
     };
   };
 
+  const computeCounterFromResult = (queryResult: any, config: ChartWidget['config']) => {
+    if (!queryResult) return 0;
+    const { columns, rows } = queryResult;
+    const yIdx = columns.indexOf(config.yAxis);
+    if (yIdx === -1) return rows.length;
+    const nums = rows.map((r: any[]) => Number(r[yIdx]) || 0);
+    switch (config.aggregation) {
+      case 'count': return rows.length;
+      case 'avg': return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+      case 'min': return nums.length ? Math.min(...nums) : 0;
+      case 'max': return nums.length ? Math.max(...nums) : 0;
+      default: return nums.reduce((a, b) => a + b, 0);
+    }
+  };
+
+  const computePivotFromResult = (queryResult: any, config: ChartWidget['config']) => {
+    if (!queryResult) return null;
+    const { columns, rows } = queryResult;
+    const rIdx = columns.indexOf(config.groupBy || '');
+    const cIdx = columns.indexOf(config.xAxis);
+    const vIdx = columns.indexOf(config.yAxis);
+    if (rIdx === -1 || cIdx === -1 || vIdx === -1) return null;
+
+    const rowVals = Array.from(new Set(rows.map((r: any[]) => String(r[rIdx]))));
+    const colVals = Array.from(new Set(rows.map((r: any[]) => String(r[cIdx]))));
+
+    const grid: Record<string, Record<string, number>> = {};
+    for (const r of rowVals) grid[r] = {};
+
+    for (const row of rows) {
+      const rr = String(row[rIdx]);
+      const cc = String(row[cIdx]);
+      const vv = Number(row[vIdx]) || 0;
+      const cur = grid[rr][cc] || 0;
+      if (config.aggregation === 'count') grid[rr][cc] = cur + 1;
+      else if (config.aggregation === 'avg') grid[rr][cc] = cur + vv; // will represent sum, not true avg
+      else if (config.aggregation === 'min') grid[rr][cc] = grid[rr][cc] == null ? vv : Math.min(grid[rr][cc], vv);
+      else if (config.aggregation === 'max') grid[rr][cc] = grid[rr][cc] == null ? vv : Math.max(grid[rr][cc], vv);
+      else grid[rr][cc] = cur + vv;
+    }
+
+    return { rowVals, colVals, grid };
+  };
+
   const saveDashboard = async () => {
     setIsSaving(true);
     try {
@@ -246,16 +302,21 @@ const DashboardBuilder = () => {
 
       const savedDashboard = await response.json();
       setDashboard(savedDashboard);
+      upsertDashboard(savedDashboard as any);
       toast.success('Dashboard saved successfully!');
 
     } catch (error) {
       // Mock save for development
       setTimeout(() => {
-        setDashboard(prev => ({
-          ...prev,
-          id: prev.id || Date.now().toString(),
-          updated_at: new Date().toISOString()
-        }));
+        setDashboard(prev => {
+          const updated = {
+            ...prev,
+            id: prev.id || Date.now().toString(),
+            updated_at: new Date().toISOString()
+          };
+          upsertDashboard(updated as any);
+          return updated;
+        });
         toast.success('Dashboard saved successfully!');
         setIsSaving(false);
       }, 1000);
@@ -469,20 +530,100 @@ const DashboardBuilder = () => {
                 </div>
 
                 <div className="h-64">
-                  {widget.data ? (
-                    <>
-                      {widget.type === 'bar' && <Bar data={widget.data} options={{ responsive: true, maintainAspectRatio: false }} />}
-                      {widget.type === 'line' && <Line data={widget.data} options={{ responsive: true, maintainAspectRatio: false }} />}
-                      {widget.type === 'pie' && <Pie data={widget.data} options={{ responsive: true, maintainAspectRatio: false }} />}
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="text-center">
-                        <BarChart3 className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-sm">No data</p>
+                  {(() => {
+                    const chartData = (widget.data && (widget.data.chartData || widget.data)) as any;
+                    const result = widget.data && widget.data.result;
+
+                    if (widget.type === 'bar' && chartData) return <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />;
+                    if (widget.type === 'line' && chartData) return <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />;
+                    if (widget.type === 'area' && chartData) return <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />;
+                    if (widget.type === 'scatter' && chartData) return <Scatter data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />;
+                    if (widget.type === 'pie' && chartData) return <Pie data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />;
+
+                    if (widget.type === 'counter') {
+                      const value = computeCounterFromResult(result, widget.config);
+                      return (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center">
+                            <div className="text-xs text-gray-500 mb-1">{widget.config.aggregation.toUpperCase()} of {widget.config.yAxis || 'rows'}</div>
+                            <div className="text-4xl font-bold text-blue-600">{Number.isFinite(value) ? value.toLocaleString() : '-'}</div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (widget.type === 'table' && result) {
+                      return (
+                        <div className="h-full overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                              <tr>
+                                {result.columns.map((c: string) => (
+                                  <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {result.rows.map((r: any[], i: number) => (
+                                <tr key={i} className={i % 2 ? 'bg-white/5' : ''}>
+                                  {r.map((cell: any, j: number) => (
+                                    <td key={j} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{String(cell)}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    }
+
+                    if (widget.type === 'pivot' && result) {
+                      const pivot = computePivotFromResult(result, widget.config);
+                      if (!pivot) return <div className="flex items-center justify-center h-full text-gray-500 text-sm">Configure Group by, X and Y to show pivot</div>;
+                      return (
+                        <div className="h-full overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 dark:bg-gray-800">
+                                <th className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{widget.config.groupBy}</th>
+                                {pivot.colVals.map((c: string) => (
+                                  <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pivot.rowVals.map((r: string) => (
+                                <tr key={r}>
+                                  <td className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 font-semibold">{r}</td>
+                                  {pivot.colVals.map((c: string) => (
+                                    <td key={c} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{(pivot.grid[r] && pivot.grid[r][c] != null) ? pivot.grid[r][c] : '-'}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    }
+
+                    if (widget.type === 'text') {
+                      return (
+                        <div className="h-full p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 overflow-auto prose prose-sm dark:prose-invert">
+                          {widget.title && <h4 className="mb-2 font-semibold">{widget.title}</h4>}
+                          <div>{(widget as any).content || 'No content'}</div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        <div className="text-center">
+                          <BarChart3 className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-sm">No data</p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             ))}

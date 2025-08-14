@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -10,13 +10,24 @@ import {
   WrapText,
   Sun,
   Moon,
-  ChevronDown,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from '@codemirror/view';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
+import { Bar, Line, Pie, Scatter } from 'react-chartjs-2';
+import {
+  getDashboards,
+  createDashboard,
+  addWidget,
+  Dashboard as StoreDashboard,
+  DashboardWidget,
+} from '../../services/dashboardStore';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
 interface AdvancedQueryEditorProps {
   initialQuery?: string;
@@ -43,6 +54,8 @@ interface QueryResult {
   rowCount: number;
 }
 
+type VizType = 'table' | 'bar' | 'line' | 'area' | 'scatter' | 'pie' | 'counter' | 'pivot';
+
 const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
   initialQuery = '-- Write your SQL here\nSELECT * FROM starknet_transactions\nLIMIT 10;',
   onExecute,
@@ -57,7 +70,6 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
   const [wordWrap, setWordWrap] = useState<boolean>(true);
   const [autoSave, setAutoSave] = useState<boolean>(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [copied, setCopied] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'editor' | 'results' | 'visualization' | 'schema'>('editor');
   const [showSchemaPanel, setShowSchemaPanel] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -67,10 +79,17 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
   const [results, setResults] = useState<QueryResult | null>(null);
 
   // Visualization state
-  const [chartType, setChartType] = useState<'table' | 'bar' | 'line' | 'pie'>('table');
-  const [chartConfig, setChartConfig] = useState<{ xAxis: string; yAxis: string; groupBy: string; aggregation: 'sum' | 'avg' | 'count' }>(
+  const [chartType, setChartType] = useState<VizType>('table');
+  const [chartConfig, setChartConfig] = useState<{ xAxis: string; yAxis: string; groupBy: string; aggregation: 'sum' | 'avg' | 'count' | 'min' | 'max' }>(
     { xAxis: '', yAxis: '', groupBy: '', aggregation: 'sum' }
   );
+
+  // Add to dashboard modal state
+  const [addToDashOpen, setAddToDashOpen] = useState(false);
+  const [dashboards, setDashboards] = useState<StoreDashboard[]>([]);
+  const [selectedDashId, setSelectedDashId] = useState<string>('');
+  const [newDashName, setNewDashName] = useState<string>('');
+  const [adding, setAdding] = useState(false);
 
   // Schema (mock)
   const schema: SchemaTable[] = [
@@ -137,21 +156,20 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     return () => clearTimeout(handle);
   }, [query, autoSave]);
 
-  // Copy feedback reset
+  // Load dashboards for the modal
   useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
-    return () => clearTimeout(t);
-  }, [copied]);
+    if (!addToDashOpen) return;
+    setDashboards(getDashboards());
+  }, [addToDashOpen]);
 
   const runQuery = async () => {
     setIsExecuting(true);
     const start = performance.now();
     try {
-      // Call external handler if provided
+      // External callback
       onExecute?.(query);
 
-      // Simulate execution and mock results
+      // Simulate execution
       await new Promise((r) => setTimeout(r, 700));
       const rows = [
         [100001, '0xabc...', '2024-01-21 10:00:00', 1.23],
@@ -160,14 +178,13 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
         [100004, '0x456...', '2024-01-21 10:03:00', 0.15],
       ];
       const end = performance.now();
-      const res: QueryResult = {
+      setResults({
         columns: ['block_number', 'hash', 'timestamp', 'value'],
         rows,
         executionTime: Math.round(end - start),
         rowCount: rows.length,
-      };
-      setResults(res);
-      setActiveTab('results');
+      });
+      setActiveTab('visualization');
     } finally {
       setIsExecuting(false);
     }
@@ -183,7 +200,144 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     setActiveTab('editor');
   };
 
-  // CodeMirror configuration
+  // Build chart.js datasets based on current results/config
+  const buildChartData = () => {
+    if (!results) return null;
+    const { columns, rows } = results;
+    const xIdx = columns.indexOf(chartConfig.xAxis);
+    const yIdx = columns.indexOf(chartConfig.yAxis);
+
+    if (chartType === 'pie') {
+      if (xIdx === -1 || yIdx === -1) return null;
+      const labels = rows.map((r) => String(r[xIdx]));
+      const values = rows.map((r) => Number(r[yIdx]) || 0);
+      return {
+        labels,
+        datasets: [{ data: values, backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#14B8A6','#EC4899','#6366F1','#84CC16','#F97316'] }],
+      };
+    }
+
+    if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
+      if (xIdx === -1 || yIdx === -1) return null;
+      const labels = rows.map((r) => String(r[xIdx]));
+      const values = rows.map((r) => Number(r[yIdx]) || 0);
+      return {
+        labels,
+        datasets: [{
+          label: chartConfig.yAxis || 'value',
+          data: values,
+          backgroundColor: chartType === 'bar' ? '#3B82F6' : 'rgba(59,130,246,0.3)',
+          borderColor: '#3B82F6',
+          fill: chartType === 'area',
+          pointRadius: 2,
+          tension: 0.25,
+        }],
+      };
+    }
+
+    if (chartType === 'scatter') {
+      if (xIdx === -1 || yIdx === -1) return null;
+      const data = rows.map((r) => ({ x: Number(r[xIdx]) || 0, y: Number(r[yIdx]) || 0 }));
+      return {
+        datasets: [{ label: `${chartConfig.xAxis} vs ${chartConfig.yAxis}`, data, backgroundColor: '#3B82F6' }],
+      };
+    }
+
+    return null;
+  };
+
+  // Pivot and Counter helpers
+  const computeCounter = () => {
+    if (!results) return 0;
+    const { columns, rows } = results;
+    const yIdx = columns.indexOf(chartConfig.yAxis);
+    if (yIdx === -1) return rows.length; // default to row count
+    const nums = rows.map((r) => Number(r[yIdx]) || 0);
+    switch (chartConfig.aggregation) {
+      case 'count':
+        return rows.length;
+      case 'avg':
+        return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+      case 'min':
+        return nums.length ? Math.min(...nums) : 0;
+      case 'max':
+        return nums.length ? Math.max(...nums) : 0;
+      default:
+        return nums.reduce((a, b) => a + b, 0);
+    }
+  };
+
+  const computePivot = () => {
+    if (!results) return null;
+    const { columns, rows } = results;
+    const rowKey = chartConfig.groupBy; // rows
+    const colKey = chartConfig.xAxis;   // columns
+    const valKey = chartConfig.yAxis;   // values
+    const rIdx = columns.indexOf(rowKey);
+    const cIdx = columns.indexOf(colKey);
+    const vIdx = columns.indexOf(valKey);
+    if (rIdx === -1 || cIdx === -1 || vIdx === -1) return null;
+
+    const rowVals = Array.from(new Set(rows.map((r) => String(r[rIdx]))));
+    const colVals = Array.from(new Set(rows.map((r) => String(r[cIdx]))));
+
+    const grid: Record<string, Record<string, number>> = {};
+    for (const r of rowVals) grid[r] = {};
+
+    for (const row of rows) {
+      const r = String(row[rIdx]);
+      const c = String(row[cIdx]);
+      const v = Number(row[vIdx]) || 0;
+      const cur = grid[r][c] || 0;
+      if (chartConfig.aggregation === 'count') grid[r][c] = cur + 1;
+      else if (chartConfig.aggregation === 'avg') {
+        // Simple avg via incremental sum/count map not stored; fallback to sum
+        grid[r][c] = cur + v;
+      } else if (chartConfig.aggregation === 'min') grid[r][c] = grid[r][c] == null ? v : Math.min(grid[r][c], v);
+      else if (chartConfig.aggregation === 'max') grid[r][c] = grid[r][c] == null ? v : Math.max(grid[r][c], v);
+      else grid[r][c] = cur + v; // sum
+    }
+
+    return { rowVals, colVals, grid };
+  };
+
+  const chartData = useMemo(() => buildChartData(), [results, chartType, chartConfig]);
+
+  const addVisualizationToDashboard = async () => {
+    if (!results) return;
+    setAdding(true);
+    try {
+      let dashId = selectedDashId;
+      if (!dashId) {
+        if (!newDashName.trim()) {
+          setAdding(false);
+          return;
+        }
+        const d = createDashboard(newDashName.trim());
+        dashId = d.id;
+      }
+
+      const widget: DashboardWidget = {
+        id: '',
+        type: chartType,
+        title: queryName || `${chartType} widget`,
+        query,
+        config: { ...chartConfig },
+        data: { result: results, chartData },
+        position: { x: 0, y: 0, w: 6, h: 4 },
+      } as any;
+
+      addWidget(dashId, widget);
+
+      // Close modal and reset
+      setAddToDashOpen(false);
+      setSelectedDashId('');
+      setNewDashName('');
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const cmExtensions = useMemo(() => {
     const exts = [sql()];
     if (wordWrap) exts.push(EditorView.lineWrapping);
@@ -209,57 +363,31 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     [showLineNumbers]
   );
 
-  // Simple visualization (bar chart)
   const Visualization = () => {
     if (!results || results.rows.length === 0) return (
       <div className="text-sm text-gray-500 dark:text-gray-400">No results to visualize.</div>
     );
 
-    const [x, y] = [chartConfig.xAxis, chartConfig.yAxis];
-    const xIdx = results.columns.indexOf(x);
-    const yIdx = results.columns.indexOf(y);
-
-    if (chartType === 'table' || xIdx === -1 || yIdx === -1) {
-      return (
-        <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
-              <tr>
-                {results.columns.map((c) => (
-                  <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {results.rows.map((r, i) => (
-                <tr key={i} className={i % 2 ? 'bg-white/5' : ''}>
-                  {r.map((cell, j) => (
-                    <td key={j} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{String(cell)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    // Build simple bar series
-    const data = results.rows.map((r) => ({ x: String(r[xIdx]), y: Number(r[yIdx]) || 0 }));
-    const maxY = Math.max(...data.map((d) => d.y), 1);
-
     return (
       <div className="space-y-4">
+        {/* Controls */}
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-          <span>Chart:</span>
+          <span>Type:</span>
           <select
             value={chartType}
-            onChange={(e) => setChartType(e.target.value as any)}
+            onChange={(e) => setChartType(e.target.value as VizType)}
             className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
           >
             <option value="table">Table</option>
             <option value="bar">Bar</option>
+            <option value="line">Line</option>
+            <option value="area">Area</option>
+            <option value="scatter">Scatter</option>
+            <option value="pie">Pie</option>
+            <option value="counter">Counter</option>
+            <option value="pivot">Pivot Table</option>
           </select>
+
           <span className="ml-4">X:</span>
           <select
             value={chartConfig.xAxis}
@@ -282,21 +410,120 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
-        </div>
-        <div className="w-full h-64 border border-gray-200 dark:border-gray-700 rounded-md p-3 overflow-auto bg-white/50 dark:bg-gray-900/50">
-          <div className="flex items-end gap-2 h-full">
-            {data.map((d, i) => (
-              <div key={i} className="flex flex-col items-center" style={{ width: `${Math.max(20, 100 / data.length)}%` }}>
-                <div
-                  className="w-full bg-blue-500/80 dark:bg-blue-500 rounded-t"
-                  style={{ height: `${(d.y / maxY) * 100}%` }}
-                  title={`${d.x}: ${d.y}`}
-                />
-                <div className="text-xs mt-1 truncate max-w-full" title={d.x}>{d.x}</div>
-              </div>
+
+          <span className="ml-2">Group by:</span>
+          <select
+            value={chartConfig.groupBy}
+            onChange={(e) => setChartConfig({ ...chartConfig, groupBy: e.target.value })}
+            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+          >
+            <option value="">None</option>
+            {results.columns.map((c) => (
+              <option key={c} value={c}>{c}</option>
             ))}
+          </select>
+
+          <span className="ml-2">Aggregation:</span>
+          <select
+            value={chartConfig.aggregation}
+            onChange={(e) => setChartConfig({ ...chartConfig, aggregation: e.target.value as any })}
+            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+          >
+            <option value="sum">Sum</option>
+            <option value="count">Count</option>
+            <option value="avg">Average</option>
+            <option value="min">Min</option>
+            <option value="max">Max</option>
+          </select>
+
+          <div className="ml-auto">
+            <button
+              onClick={() => setAddToDashOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4" /> Add to Dashboard
+            </button>
           </div>
         </div>
+
+        {/* Render visualization */}
+        {chartType === 'table' && (
+          <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  {results.columns.map((c) => (
+                    <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {results.rows.map((r, i) => (
+                  <tr key={i} className={i % 2 ? 'bg-white/5' : ''}>
+                    {r.map((cell, j) => (
+                      <td key={j} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{String(cell)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {(chartType === 'bar' || chartType === 'line' || chartType === 'area') && chartData && (
+          <div className="w-full h-72">
+            {chartType === 'bar' && <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />}
+            {(chartType === 'line' || chartType === 'area') && <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />}
+          </div>
+        )}
+
+        {chartType === 'scatter' && chartData && (
+          <div className="w-full h-72">
+            <Scatter data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
+          </div>
+        )}
+
+        {chartType === 'pie' && chartData && (
+          <div className="w-full max-w-md">
+            <Pie data={chartData} options={{ responsive: true, maintainAspectRatio: true }} />
+          </div>
+        )}
+
+        {chartType === 'counter' && (
+          <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-center">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{chartConfig.aggregation.toUpperCase()} of {chartConfig.yAxis || 'rows'}</div>
+            <div className="text-4xl font-bold text-blue-600">{computeCounter().toLocaleString()}</div>
+          </div>
+        )}
+
+        {chartType === 'pivot' && (() => {
+          const pivot = computePivot();
+          if (!pivot) return <div className="text-sm text-gray-500">Set Group by, X, and Y columns to generate a pivot.</div>;
+          return (
+            <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-800">
+                    <th className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{chartConfig.groupBy}</th>
+                    {pivot.colVals.map((c) => (
+                      <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pivot.rowVals.map((r) => (
+                    <tr key={r}>
+                      <td className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 font-semibold">{r}</td>
+                      {pivot.colVals.map((c) => (
+                        <td key={c} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{(pivot.grid[r] && pivot.grid[r][c] != null) ? pivot.grid[r][c] : '-'}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -380,11 +607,7 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
             onClick={() => setShowSchemaPanel((s) => !s)}
             className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
           >
-            {showSchemaPanel ? (
-              <span className="inline-flex items-center gap-1"><ChevronRight className="w-4 h-4" /> Hide schema</span>
-            ) : (
-              <span className="inline-flex items-center gap-1"><ChevronRight className="w-4 h-4 rotate-180" /> Show schema</span>
-            )}
+            <span className="inline-flex items-center gap-1"><ChevronRight className={`w-4 h-4 ${showSchemaPanel ? '' : 'rotate-180'}`} /> {showSchemaPanel ? 'Hide schema' : 'Show schema'}</span>
           </button>
         </div>
       </div>
@@ -553,6 +776,55 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
           )}
         </div>
       </div>
+
+      {/* Add to dashboard modal */}
+      {addToDashOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setAddToDashOpen(false)} />
+          <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 w-full max-w-lg">
+            <h3 className="text-lg font-semibold mb-3">Add to Dashboard</h3>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-medium mb-1">Select existing dashboard</div>
+                <select
+                  value={selectedDashId}
+                  onChange={(e) => setSelectedDashId(e.target.value)}
+                  className="w-full px-2 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                >
+                  <option value="">-- None --</option>
+                  {dashboards.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-center text-xs text-gray-500">or</div>
+              <div>
+                <div className="text-sm font-medium mb-1">Create new dashboard</div>
+                <input
+                  value={newDashName}
+                  onChange={(e) => setNewDashName(e.target.value)}
+                  placeholder="Dashboard name"
+                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setAddToDashOpen(false)} className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-700">Cancel</button>
+                <a
+                  href={selectedDashId ? `/dashboard?dashId=${selectedDashId}` : '#'}
+                  className="hidden"
+                />
+                <button
+                  onClick={addVisualizationToDashboard}
+                  disabled={adding || (!selectedDashId && !newDashName.trim())}
+                  className="px-3 py-1.5 rounded bg-green-600 text-white disabled:opacity-50"
+                >
+                  {adding ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

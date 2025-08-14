@@ -4,8 +4,6 @@ import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Portfolio from './pages/Portfolio';
-import QueryEditor from './pages/QueryEditor';
-import EnhancedQueryEditor from './pages/EnhancedQueryEditor';
 import DashboardBuilder from './pages/DashboardBuilder';
 import AdvancedQueryEditorPage from './pages/AdvancedQueryEditorPage';
 import ContractVerification from './pages/ContractVerification';
@@ -30,10 +28,8 @@ function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/query" element={<EnhancedQueryEditor />} />
-              <Route path="/query-advanced" element={<AdvancedQueryEditorPage />} />
-              <Route path="/query-basic" element={<QueryEditor />} />
-              <Route path="/dashboard" element={<DashboardBuilder />} />
+              <Route path="/query" element={<AdvancedQueryEditorPage />} />
+                            <Route path="/dashboard" element={<DashboardBuilder />} />
               <Route path="/contracts" element={<ContractVerification />} />
               <Route path="/bounty/:id" element={<BountyDetail />} />
               <Route path="/create-bounty" element={<CreateBounty />} />

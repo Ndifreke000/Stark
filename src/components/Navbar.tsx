@@ -54,12 +54,6 @@ const Navbar = () => {
                 >
                   Query Editor
                 </Link>
-                <Link
-                  to="/query-advanced"
-                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 text-sm font-medium"
-                >
-                  Advanced
-                </Link>
                 
                 <Link
                   to="/dashboard"

@@ -59,7 +59,7 @@ LIMIT 100;`);
   const [isExecuting, setIsExecuting] = useState(false);
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [selectedDataset, setSelectedDataset] = useState('core');
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [activeTab, setActiveTab] = useState<'schema' | 'history' | 'saved'>('schema');
   const [sidebarSection, setSidebarSection] = useState<'profile' | 'library' | 'account' | 'usage' | 'create' | 'docs' | 'pricing' | 'more'>('profile');
   const location = useLocation();
@@ -760,13 +760,7 @@ LIMIT 100;`);
           <div className="flex-1 flex flex-col">
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
               <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowSidebar(!showSidebar)}
-                    className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                  </button>
+                <div className="flex items-center">
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                     <span>Dataset:</span>
                     <select

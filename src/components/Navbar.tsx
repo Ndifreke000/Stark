@@ -34,9 +34,8 @@ const Navbar = () => {
             {user ? (
               <>
                 <div className="flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-300">
-                  <span>{user.queriesUsed}/{user.queryLimit} queries</span>
                   {!user.isPremium && (
-                    <Link to="/premium" className="text-yellow-600 hover:text-yellow-700">
+                    <Link to="/premium" className="text-yellow-600 hover:text-yellow-700" aria-label="Upgrade to Premium">
                       <Crown className="h-4 w-4" />
                     </Link>
                   )}
@@ -54,6 +53,12 @@ const Navbar = () => {
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
                 >
                   Query Editor
+                </Link>
+                <Link
+                  to="/query-advanced"
+                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 text-sm font-medium"
+                >
+                  Advanced
                 </Link>
                 
                 <Link

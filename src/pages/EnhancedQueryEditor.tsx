@@ -411,10 +411,7 @@ LIMIT 100;`);
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Query Editor</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {user.queriesUsed}/{user.queryLimit} queries used this month
-            </p>
-          </div>
+                      </div>
           
           <div className="flex items-center space-x-3">
             <button

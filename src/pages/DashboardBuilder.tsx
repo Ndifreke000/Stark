@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Save, Share2, Coins, BarChart3, LineChart, PieChart, TrendingUp, Download, Settings, Trash2 } from 'lucide-react';
+import * as htmlToImage from 'html-to-image';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
@@ -52,6 +53,7 @@ const DashboardBuilder = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
   const [searchParams] = useSearchParams();
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     const id = searchParams.get('dashId');
     if (id) {
@@ -432,6 +434,45 @@ const DashboardBuilder = () => {
           </div>
 
           <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2 text-sm">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean((dashboard as any).isPublic)}
+                  onChange={(e) => setDashboard(prev => ({ ...prev, isPublic: e.target.checked }))}
+                />
+                Public
+              </label>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(`${window.location.origin}/d/${dashboard.id || ''}`);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1200);
+                }}
+                disabled={!dashboard.id}
+                className="flex items-center gap-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-700 disabled:opacity-50"
+                title="Copy public link"
+              >
+                <Share2 className="h-4 w-4" /> {copied ? 'Copied' : 'Share'}
+              </button>
+              <button
+                onClick={async () => {
+                  const el = document.getElementById('dashboard-capture');
+                  if (!el) return;
+                  await new Promise((r) => setTimeout(r, 200));
+                  const dataUrl = await htmlToImage.toPng(el, { pixelRatio: 2 });
+                  const a = document.createElement('a');
+                  a.href = dataUrl;
+                  a.download = `dashboard_${dashboard.name || 'export'}_${Date.now()}.png`;
+                  a.click();
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-700"
+                title="Export as PNG"
+              >
+                <Download className="h-4 w-4" /> Export
+              </button>
+            </div>
+
             <button
               onClick={saveDashboard}
               disabled={isSaving}
@@ -487,6 +528,7 @@ const DashboardBuilder = () => {
 
       {/* Dashboard Grid */}
       <div className="p-6">
+        <div id="dashboard-capture">
         {dashboard.widgets.length === 0 ? (
           <div className="text-center py-12">
             <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -629,6 +671,7 @@ const DashboardBuilder = () => {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Widget Editor Modal */}

@@ -1,79 +1,84 @@
-npm installnpm install# Stark Smart Contract Development Guide
+# Starklytics Smart Contract Development Guide (StarkNet)
 
 ## Overview
-Stark is a Web3 bounty platform that enables users to create, manage, and complete bounties using cryptocurrency rewards. This guide provides smart contract developers with the complete architecture and implementation requirements for the Stark platform's smart contracts.
+Starklytics is a Web3 analytics and bounty platform. This document specifies the on-chain architecture for bounties on StarkNet, event shapes for indexing, and how contracts should interoperate with RPC/indexer and the backend.
 
 ## Architecture Overview
 
 ### System Architecture
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Stark Platform                           │
-├─────────────────────────────────────────────────────────────┤
-│  Frontend (React/TypeScript)                                │
-│  ├── Wallet Integration (MetaMask, WalletConnect)          │
-│  ├── Bounty Management UI                                │
-│  └── Real-time Updates (WebSockets)                       │
-├─────────────────────────────────────────────────────────────┤
-│  Backend Services (Node.js/TypeScript)                      │
-│  ├── REST API Layer                                       │
-│  ├── WebSocket Server                                     │
-│  └── PostgreSQL Database                                  │
-├─────────────────────────────────────────────────────────────┤
-│  Smart Contracts (Solidity)                               │
-│  ├── BountyFactory.sol                                    │
-│  ├── Bounty.sol                                           │
-│  ├── Escrow.sol                                           │
-│  └── Token.sol (ERC20)                                    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                       Starklytics Platform                    │
+├──────────────────────────────────────────────────────────────┤
+│ Frontend (React/TS)                                          │
+│  - Wallet integration (Argent X / Braavos)                    │
+│  - Query editor, dashboards, bounties                         │
+├──────────────────────────────────────────────────────────────┤
+│ Backend (Node/TS)                                            │
+│  - REST APIs, worker jobs, IPFS pinning                       │
+│  - Indexer consuming StarkNet RPC events                      │
+���──────────────────────────────────────────────────────────────┤
+│ Smart Contracts (Cairo/StarkNet)                             │
+│  - BountyFactory.cairo (single contract with structs)         │
+│  - ERC20 tokens for rewards                                   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Contract Architecture
-The smart contracts follow a factory pattern with modular design:
+We use a factory-style single contract that tracks bounties in storage (structs) instead of deploying a new contract per bounty. This minimizes gas and simplifies indexing. Funds are escrowed within the factory using ERC20 transfers.
 
-1. **BountyFactory**: Creates and manages bounty instances
-2. **Bounty**: Individual bounty logic and state management
-3. **Escrow**: Secure fund holding and release mechanism
-4. **Token**: ERC20 token integration for rewards
+Core components:
+1. BountyFactory.cairo (primary)
+2. ERC20 (existing token contracts)
 
 ## Smart Contract Requirements
 
 ### Core Contracts
 
-#### 1. BountyFactory.sol
-**Purpose**: Factory contract for creating new bounties
-```solidity
-// Key Functions
-- createBounty(string title, string description, uint reward, address token, uint deadline)
-- getBountiesByCreator(address creator)
-- getActiveBounties()
-- pause/unpause factory
-```
+#### 1. BountyFactory.cairo
+Purpose: Manage lifecycle of all bounties and escrow funds.
 
-#### 2. Bounty.sol
-**Purpose**: Individual bounty management
-```solidity
-// States
-enum BountyStatus { Open, InProgress, Completed, Cancelled, Disputed }
+Key storage:
+- mapping<bounty_id => Bounty>
+- mapping<bounty_id => total_escrowed>
+- global params: treasury_address, fee_bps
 
-// Key Functions
-- submitSolution(string solutionHash)
-- acceptSolution(address solver)
-- rejectSolution(address solver)
-- cancelBounty()
-- disputeBounty()
-- releaseFunds(address solver)
-```
+Key functions (indicative):
+- create_bounty(token: felt252, total_reward: u256, deadline: u64, metadata_hash: felt252) -> bounty_id
+  - requires prior ERC20 approve to factory address
+  - transfers total_reward from creator to factory
+  - emits BountyCreated(bounty_id, creator, token, total_reward, deadline, metadata_hash)
+- submit_solution(bounty_id: u128, submission_hash: felt252)
+  - emits SolutionSubmitted(bounty_id, solver, submission_id, submission_hash)
+- select_winners(bounty_id: u128, winners: Array<felt252>, amounts: Array<u256>) only_creator
+  - checks sum(amounts) <= total_escrowed - fee
+  - transfers tokens to winners
+  - emits WinnersSelected(bounty_id, winners[], amounts[])
+- cancel_expired(bounty_id: u128) only_creator
+  - if now > deadline and no winners selected, refund creator minus fee
+  - emits BountyCancelled(bounty_id)
+- set_fee_bps(new_fee_bps) only_owner
+- pause/unpause (optional)
 
-#### 3. Escrow.sol
-**Purpose**: Secure fund management
-```solidity
-// Key Functions
-- deposit(address bounty, uint amount)
-- release(address solver, uint amount)
-- refund(address creator)
-- getBalance(address bounty)
-```
+Events:
+- BountyCreated(bounty_id, creator, token, total_reward, deadline, metadata_hash)
+- SolutionSubmitted(bounty_id, solver, submission_id, submission_hash)
+- WinnersSelected(bounty_id, winners[], amounts[])
+- BountyCancelled(bounty_id)
+- Refunded(bounty_id, to, amount)
+
+Status model (off-chain derived):
+- live: now < deadline and no final winners
+- completed: winners selected
+- expired: now > deadline and no winners
+- cancelled: explicitly cancelled
+
+Note: Actual status can remain minimal on-chain; the indexer/back-end computes derived states for UI.
+
+#### 2. ERC20 tokens
+- Standard SN/ERC20 used for rewards
+- Creator calls approve(factory, total_reward) before create_bounty
+- Token decimals should be obtained via RPC and cached by the backend/indexer
 
 #### 4. Token.sol
 **Purpose**: ERC20 token for rewards
@@ -82,27 +87,26 @@ enum BountyStatus { Open, InProgress, Completed, Cancelled, Disputed }
 
 ### Security Requirements
 
-#### Access Control
-- **Owner**: Platform admin with emergency powers
-- **Creator**: Bounty creator with management rights
-- **Solver**: Users who submit solutions
-- **Arbitrator**: Dispute resolution authority
+Access Control
+- Owner: platform admin (treasury, fee params, pause)
+- Creator: bounty creator (winners selection, cancel expired)
+- Solver: can submit solutions
+- Optional arbitrator (disputes) — out of scope for MVP
 
-#### Security Features
-- Reentrancy protection (ReentrancyGuard)
-- Overflow protection (SafeMath)
-- Access control modifiers
-- Emergency pause mechanism
-- Time-locked functions
+Security Features
+- Reentrancy protection
+- Checked arithmetic
+- Pause mechanism
+- Input validation (non-zero reward, valid deadline)
+- Events for all state-changing actions (indexer-friendly)
 
 ### Integration Points
 
-#### Frontend Integration
-- **Web3.js/ethers.js** connection
-- **MetaMask** wallet integration
-- **Event listeners** for real-time updates
-- **IPFS** integration for solution storage
-- **Auto Swapper** integration for token conversion
+#### Frontend/Backend/Indexer Integration
+- Wallets: Argent X / Braavos (typed data signatures for auth; txs signed client-side)
+- Events: Indexer consumes BountyCreated/SolutionSubmitted/WinnersSelected/Cancelled
+- IPFS: metadata_hash and submission_hash should be CIDs (stored in events)
+- RPC: used for event reads, token metadata, chainId, timestamps
 
 #### Backend Integration
 - **Event indexing** for database synchronization
@@ -113,10 +117,10 @@ enum BountyStatus { Open, InProgress, Completed, Cancelled, Disputed }
 ## Development Environment
 
 ### Prerequisites
-- Node.js v16+
-- Hardhat/Truffle development framework
-- MetaMask browser extension
-- PostgreSQL database
+- Cairo toolchain
+- StarkNet devnet/testnet access
+- Node.js (for scripts)
+- ABIs for factory and ERC20
 
 ### Setup Instructions
 ```bash
@@ -130,68 +134,60 @@ npm install
 # Create .env file
 cp .env.example .env
 
-# Compile contracts
-npx hardhat compile
+# Build & test (placeholder – adapt to chosen tooling)
+scarb build
+scarb test
 
-# Run tests
-npx hardhat test
-
-# Deploy to local network
-npx hardhat node
-npx hardhat run scripts/deploy.js --network localhost
+# Deploy (example)
+# Use StarkNet CLI/tooling to deploy factory and record address
 ```
 
 ### Testing Strategy
 
-#### Unit Tests
-- Individual contract functions
-- Edge cases and error conditions
-- Gas usage optimization
+Unit Tests
+- create_bounty validations (approval, non-zero reward, deadline)
+- submit_solution and event emission
+- select_winners sums and transfers
+- cancel_expired behaviour
 
-#### Integration Tests
-- Contract interactions
-- Frontend-backend integration
-- WebSocket event handling
+Integration Tests
+- ERC20 approve + create_bounty flow
+- Multiple winners selection and partial payouts
+- Indexer replay idempotency (event order/cursors)
 
-#### Security Tests
-- Reentrancy attacks
-- Overflow/underflow scenarios
-- Access control bypass attempts
+Security Tests
+- Reentrancy (especially during transfers)
+- Only-creator checks
+- Pause effects
 
 ## Deployment Strategy
 
 ### Networks
-1. **Local**: Hardhat network for development
-2. **Testnet**: Goerli/Sepolia for testing
-3. **Mainnet**: Ethereum mainnet for production
+1. Local: StarkNet devnet
+2. Testnet: StarkNet Sepolia
+3. Mainnet: StarkNet mainnet
 
-### Deployment Scripts
-- `scripts/deploy.js`: Main deployment script
-- `scripts/verify.js`: Contract verification on Etherscan
-- `scripts/upgrade.js`: Proxy upgrade scripts
+### Deployment Artifacts
+- Publish factory address and ABI in a versioned JSON (consumed by frontend/backend)
+- Maintain ENV pointers for RPC URLs and factory address per network
 
 ## Gas Optimization
 
 ### Optimization Techniques
-- Use events instead of storage where possible
-- Batch operations for multiple bounties
-- Efficient data structures (mappings vs arrays)
-- Minimize on-chain computation
-
-### Gas Estimates
-- Create bounty: ~100,000 gas
-- Submit solution: ~50,000 gas
-- Accept solution: ~80,000 gas
-- Cancel bounty: ~60,000 gas
+- Event-first design for off-chain indexing
+- Minimal on-chain storage; leverage IPFS for large metadata
+- Single contract with structs to avoid per-bounty deployment cost
+- Avoid loops over unbounded arrays in state changes
 
 ## Monitoring & Analytics
 
 ### Events to Track
-```solidity
-event BountyCreated(uint indexed bountyId, address indexed creator, uint reward);
-event SolutionSubmitted(uint indexed bountyId, address indexed solver);
-event BountyCompleted(uint indexed bountyId, address indexed solver);
-event BountyDisputed(uint indexed bountyId, address indexed disputer);
+```text
+BountyCreated(bounty_id: u128, creator: felt252, token: felt252, total_reward: u256, deadline: u64, metadata_hash: felt252)
+SolutionSubmitted(bounty_id: u128, solver: felt252, submission_id: u128, submission_hash: felt252)
+WinnersSelected(bounty_id: u128, winners: Array<felt252>, amounts: Array<u256>)
+BountyCancelled(bounty_id: u128)
+Refunded(bounty_id: u128, to: felt252, amount: u256)
 ```
 
 ### Analytics Integration
@@ -220,15 +216,20 @@ event BountyDisputed(uint indexed bountyId, address indexed disputer);
 
 ## Resources
 
-- [Solidity Documentation](https://docs.soliditylang.org/)
-- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
-- [Hardhat Documentation](https://hardhat.org/docs)
-- [Web3.js Documentation](https://web3js.readthedocs.io/)
-- [Ethereum Development Guide](https://ethereum.org/en/developers/)
+- [StarkNet Docs](https://docs.starknet.io/)
+- [Cairo Book](https://book.cairo-lang.org/)
+- [OpenZeppelin Cairo Contracts](https://github.com/OpenZeppelin/cairo-contracts)
+- [StarkNet JS](https://www.starknetjs.com/)
+
+## Expectations for RPC and Indexer
+
+- Contracts emit the complete data needed for an idempotent indexer:
+  - Use unique submission ids per bounty
+  - Include CIDs (metadata_hash, submission_hash) in events
+- Avoid implicit off-chain state; all key lifecycle transitions should be evented
+- Keep functions pure in terms of side effects (only update necessary state and emit)
+- Respect chain timestamps and emit deadlines in seconds
 
 ## Support
 
-For questions or issues, please:
-1. Check the [Issues](issues-url) page
-2. Join our [Discord](discord-url)
-3. Contact the development team
+For questions or issues, please open issues or contact the team.

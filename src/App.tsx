@@ -7,6 +7,7 @@ import Portfolio from './pages/Portfolio';
 import DashboardBuilder from './pages/DashboardBuilder';
 import AdvancedQueryEditorPage from './pages/AdvancedQueryEditorPage';
 import ContractVerification from './pages/ContractVerification';
+import PublicDashboardView from './pages/PublicDashboardView';
 import BountyDetail from './pages/BountyDetail';
 import CreateBounty from './pages/CreateBounty';
 import Profile from './pages/Profile';
@@ -31,6 +32,7 @@ function App() {
               <Route path="/query" element={<AdvancedQueryEditorPage />} />
                             <Route path="/dashboard" element={<DashboardBuilder />} />
               <Route path="/contracts" element={<ContractVerification />} />
+              <Route path="/d/:id" element={<PublicDashboardView />} />
               <Route path="/bounty/:id" element={<BountyDetail />} />
               <Route path="/create-bounty" element={<CreateBounty />} />
               <Route path="/profile" element={<Profile />} />

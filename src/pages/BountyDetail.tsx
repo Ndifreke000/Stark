@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Users, DollarSign, Clock, Code, FileText, Send, ExternalLink } from 'lucide-react';
+import { Calendar, Users, DollarSign, Clock, Code, FileText, Send, ExternalLink, Link as LinkIcon } from 'lucide-react';
 import SocialShare from '../components/SocialShare';
+import { getDashboards } from '../services/dashboardStore';
 
 const BountyDetail = () => {
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [submissionMode, setSubmissionMode] = useState<'sql' | 'dashboard' | 'both'>('sql');
   const [submission, setSubmission] = useState({
     query: '-- Your SQL analysis query\nSELECT \n  date_trunc(\'day\', block_timestamp) as day,\n  COUNT(*) as transaction_count,\n  AVG(gas_used) as avg_gas\nFROM starknet_transactions\nWHERE block_timestamp >= \'2024-01-01\'\nGROUP BY 1\nORDER BY 1;',
     insights: '',
-    methodology: ''
+    methodology: '',
+    dashboardLink: '',
+    selectedDashboardId: ''
   });
+  const [myDashboards, setMyDashboards] = useState<any[]>([]);
+  useEffect(() => {
+    if (showSubmissionModal) {
+      setMyDashboards(getDashboards());
+    }
+  }, [showSubmissionModal]);
 
   // Mock bounty data
   const bounty = {
@@ -58,13 +68,24 @@ const BountyDetail = () => {
   const handleSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Mock submission
+
+    // Build payload
+    const payload = {
+      bountyId: bounty.id,
+      query: submissionMode !== 'dashboard' ? submission.query : undefined,
+      insights: submission.insights,
+      methodology: submission.methodology,
+      dashboardLink: submission.dashboardLink || (submission.selectedDashboardId ? `${window.location.origin}/d/${submission.selectedDashboardId}` : ''),
+      submittedAt: Date.now(),
+    };
+
+    // Mock submission persistence
     setTimeout(() => {
+      console.log('Submitted payload:', payload);
       setIsSubmitting(false);
       setShowSubmissionModal(false);
       alert('Submission successful!');
-    }, 2000);
+    }, 1200);
   };
 
   return (
@@ -249,23 +270,65 @@ const BountyDetail = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Submit Your Solution</h2>
+              <div className="mt-2 flex items-center gap-2 text-sm">
+                <label className="inline-flex items-center gap-1">
+                  <input type="radio" name="mode" checked={submissionMode==='sql'} onChange={()=>setSubmissionMode('sql')} /> SQL
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="radio" name="mode" checked={submissionMode==='dashboard'} onChange={()=>setSubmissionMode('dashboard')} /> Dashboard
+                </label>
+                <label className="inline-flex items-center gap-1">
+                  <input type="radio" name="mode" checked={submissionMode==='both'} onChange={()=>setSubmissionMode('both')} /> Both
+                </label>
+              </div>
             </div>
             
             <form onSubmit={handleSubmission} className="p-6 space-y-6">
               {/* SQL Query */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  SQL Query *
-                </label>
-                <textarea
-                  value={submission.query}
-                  onChange={(e) => setSubmission({ ...submission, query: e.target.value })}
-                  required
-                  rows={10}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm dark:bg-gray-700 dark:text-white"
-                  placeholder="Write your SQL analysis query here..."
-                />
-              </div>
+              {(submissionMode === 'sql' || submissionMode === 'both') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    SQL Query {submissionMode==='both' ? '' : '*'}
+                  </label>
+                  <textarea
+                    value={submission.query}
+                    onChange={(e) => setSubmission({ ...submission, query: e.target.value })}
+                    required={submissionMode!=='dashboard'}
+                    rows={10}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm dark:bg-gray-700 dark:text-white"
+                    placeholder="Write your SQL analysis query here..."
+                  />
+                </div>
+              )}
+
+              {/* Dashboard Link */}
+              {(submissionMode === 'dashboard' || submissionMode === 'both') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Attach Dashboard
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input
+                      type="url"
+                      value={submission.dashboardLink}
+                      onChange={(e) => setSubmission({ ...submission, dashboardLink: e.target.value })}
+                      placeholder="Paste public dashboard link e.g., https://your-host/d/123"
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <select
+                      value={submission.selectedDashboardId}
+                      onChange={(e) => setSubmission({ ...submission, selectedDashboardId: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Select from My Dashboards</option>
+                      {myDashboards.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Ensure your selected dashboard is public (set in Dashboard Builder) to be viewable by judges.</p>
+                </div>
+              )}
 
               {/* Insights */}
               <div>

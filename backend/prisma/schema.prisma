@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          Role     @default(USER)
+  created_at    DateTime @default(now())
+
+  // Relations
+  created_bounties Bounty[]     @relation("BountyCreator")
+  submissions      Submission[]
+
+  @@map("users")
+}
+
+model Bounty {
+  id            String        @id @default(cuid())
+  title         String
+  description   String
+  reward_amount Float
+  status        BountyStatus  @default(OPEN)
+  created_by    String
+  created_at    DateTime      @default(now())
+
+  // Relations
+  creator     User         @relation("BountyCreator", fields: [created_by], references: [id])
+  submissions Submission[]
+
+  @@map("bounties")
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  bounty_id    String
+  analyst_id   String
+  link_to_work String
+  status       SubmissionStatus @default(PENDING)
+  submitted_at DateTime         @default(now())
+
+  // Relations
+  bounty  Bounty @relation(fields: [bounty_id], references: [id])
+  analyst User   @relation(fields: [analyst_id], references: [id])
+
+  @@unique([bounty_id, analyst_id]) // One submission per analyst per bounty
+  @@map("submissions")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  USER
+}
+
+enum BountyStatus {
+  OPEN
+  CLOSED
+  REVIEWING
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: starknet_bounty_db
+    restart: always
+    environment:
+      POSTGRES_DB: starknet_bounty
+      POSTGRES_USER: bounty_user
+      POSTGRES_PASSWORD: bounty_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bounty_user -d starknet_bounty']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -376,9 +376,10 @@ const Bounties: React.FC = () => {
                   variants={itemVariants}
                   whileHover={{ y: -10, scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 300 }}
+                  className="h-full"
                 >
                   <AnimatedCard
-                    className="p-8 h-full group relative overflow-hidden"
+                    className="p-6 h-full group relative overflow-hidden flex flex-col"
                     hover={true}
                     delay={index * 0.1}
                     glow={true}
@@ -386,11 +387,11 @@ const Bounties: React.FC = () => {
                   >
                     {/* Status Badge */}
                     <motion.div
-                      className="absolute top-4 right-4"
+                      className="absolute top-3 right-3 z-10"
                       whileHover={{ scale: 1.1, rotate: 5 }}
                     >
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
+                        className={`px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
                           bounty.status === 'live'
                             ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
                             : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
@@ -402,11 +403,11 @@ const Bounties: React.FC = () => {
 
                     {/* Difficulty Badge */}
                     <motion.div
-                      className="absolute top-4 left-4"
+                      className="absolute top-3 left-3 z-10"
                       whileHover={{ scale: 1.1, rotate: -5 }}
                     >
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
+                        className={`px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
                           bounty.difficulty === 'Easy' ? 'bg-gradient-to-r from-green-400 to-green-500 text-white' :
                           bounty.difficulty === 'Medium' ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
                           'bg-gradient-to-r from-red-500 to-pink-500 text-white'
@@ -416,42 +417,54 @@ const Bounties: React.FC = () => {
                       </span>
                     </motion.div>
 
-                    <div className="mt-8">
+                    <div className="mt-8 flex-1 flex flex-col">
                       <motion.h3 
-                        className="text-xl font-black text-gray-900 dark:text-white leading-tight mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
+                        className="text-lg font-black text-gray-900 dark:text-white leading-tight mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300 min-h-[3.5rem] flex items-start"
                         whileHover={{ scale: 1.02 }}
+                        title={bounty.title}
                       >
-                        {bounty.title}
+                        <span className="line-clamp-2 break-words">
+                          {bounty.title}
+                        </span>
                       </motion.h3>
 
-                      <p className="text-gray-600 dark:text-gray-300 line-clamp-3 mb-6 font-medium leading-relaxed">
-                        {bounty.description}
+                      <p className="text-gray-600 dark:text-gray-300 mb-4 font-medium leading-relaxed text-sm flex-1 min-h-[4.5rem]"
+                         title={bounty.description}>
+                        <span className="line-clamp-3 break-words">
+                          {bounty.description}
+                        </span>
                       </p>
 
                       <motion.div 
-                        className="flex flex-wrap gap-2 mb-6"
+                        className="flex flex-wrap gap-1.5 mb-4 min-h-[2rem]"
                         variants={containerVariants}
                       >
-                        {bounty.tags.map((tag, tagIndex) => (
+                        {bounty.tags.slice(0, 3).map((tag, tagIndex) => (
                           <motion.span
                             key={tag}
-                            className="px-3 py-1 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-200 text-sm font-bold rounded-full border border-blue-200 dark:border-blue-700"
+                            className="px-2 py-1 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-200 text-xs font-bold rounded-full border border-blue-200 dark:border-blue-700 truncate max-w-[80px]"
                             variants={itemVariants}
-                            whileHover={{ scale: 1.1, y: -2 }}
+                            whileHover={{ scale: 1.05, y: -1 }}
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: tagIndex * 0.1 }}
+                            title={tag}
                           >
                             {tag}
                           </motion.span>
                         ))}
+                        {bounty.tags.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-full">
+                            +{bounty.tags.length - 3}
+                          </span>
+                        )}
                       </motion.div>
 
-                      <div className="flex items-center justify-between">
-                        <div>
+                      <div className="flex items-end justify-between mt-auto">
+                        <div className="flex-1 min-w-0">
                           <motion.div 
-                            className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600"
-                            whileHover={{ scale: 1.1 }}
+                            className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 truncate"
+                            whileHover={{ scale: 1.05 }}
                             animate={{
                               backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                             }}
@@ -467,7 +480,7 @@ const Bounties: React.FC = () => {
                             {bounty.reward} {bounty.currency}
                           </motion.div>
                           <motion.div 
-                            className="text-sm text-gray-500 font-semibold mt-1"
+                            className="text-xs text-gray-500 font-semibold mt-1"
                             whileHover={{ scale: 1.05 }}
                           >
                             <motion.span
@@ -479,29 +492,30 @@ const Bounties: React.FC = () => {
                           </motion.div>
                         </div>
                         
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 ml-2">
                           <motion.div whileHover={{ scale: 1.1 }}>
                             <SocialShare title={bounty.title} url={`/bounty/${bounty.id}`} />
                           </motion.div>
-                          <AnimatedButton
-                            variant="primary"
-                            size="sm"
-                            icon={ExternalLink}
-                            iconPosition="right"
-                            onClick={() => {}}
-                          >
-                            <Link to={`/bounty/${bounty.id}`}>
-                              View Details
-                            </Link>
-                          </AnimatedButton>
+                          <Link to={`/bounty/${bounty.id}`}>
+                            <AnimatedButton
+                              variant="primary"
+                              size="sm"
+                              icon={ExternalLink}
+                              iconPosition="right"
+                              className="text-xs px-3 py-2"
+                            >
+                              View
+                            </AnimatedButton>
+                          </Link>
                         </div>
                       </div>
                     </div>
 
                     {/* Creator Badge */}
                     <motion.div 
-                      className="absolute bottom-4 left-4 text-xs text-gray-500 font-semibold"
+                      className="absolute bottom-3 left-3 text-xs text-gray-500 font-semibold max-w-[120px] truncate"
                       whileHover={{ scale: 1.05 }}
+                      title={`by ${bounty.creator}`}
                     >
                       by {bounty.creator}
                     </motion.div>
@@ -544,16 +558,16 @@ const Bounties: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <AnimatedButton
-                variant="secondary"
-                size="lg"
-                icon={Zap}
-                className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl"
-              >
-                <Link to="/create-bounty">
+              <Link to="/create-bounty">
+                <AnimatedButton
+                  variant="secondary"
+                  size="lg"
+                  icon={Zap}
+                  className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl"
+                >
                   Create Bounty
-                </Link>
-              </AnimatedButton>
+                </AnimatedButton>
+              </Link>
             </div>
           </AnimatedCard>
         </motion.div>

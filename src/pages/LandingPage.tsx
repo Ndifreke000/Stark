@@ -1,335 +1,734 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, ExternalLink, Twitter, Linkedin, Code2, Users, DollarSign, TrendingUp } from 'lucide-react';
-import SocialShare from '../components/SocialShare';
-
-interface Bounty {
-  id: string;
-  title: string;
-  description: string;
-  reward: number;
-  currency: string;
-  status: 'live' | 'completed';
-  submissions: number;
-  deadline: string;
-  tags: string[];
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  creator: string;
-}
+import { Code2, Trophy, TrendingUp, ArrowRight, Sparkles, Users, DollarSign, Database, Zap, Star, BarChart3 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const LandingPage = () => {
-  const [activeTab, setActiveTab] = useState<'all' | 'live' | 'completed'>('all');
-
-  const bounties: Bounty[] = [
-    {
-      id: '1',
-      title: 'Analyze DeFi TVL Trends on Starknet',
-      description: 'Create a comprehensive analysis of Total Value Locked across top DeFi protocols on Starknet over the last 6 months.',
-      reward: 500,
-      currency: 'STRK',
-      status: 'live',
-      submissions: 12,
-      deadline: '2024-02-15',
-      tags: ['DeFi', 'TVL', 'Analytics'],
-      difficulty: 'Medium',
-      creator: 'StarkWare'
-    },
-    {
-      id: '2',
-      title: 'Bridge Activity Deep Dive',
-      description: 'Examine cross-chain bridge usage patterns and identify peak usage times and user behaviors.',
-      reward: 750,
-      currency: 'STRK',
-      status: 'live',
-      submissions: 8,
-      deadline: '2024-02-20',
-      tags: ['Bridge', 'Cross-chain', 'User Behavior'],
-      difficulty: 'Hard',
-      creator: 'LayerZero'
-    },
-    {
-      id: '3',
-      title: 'NFT Trading Volume Analysis',
-      description: 'Track NFT trading patterns and identify the most active collections and traders.',
-      reward: 300,
-      currency: 'STRK',
-      status: 'completed',
-      submissions: 23,
-      deadline: '2024-01-30',
-      tags: ['NFT', 'Trading', 'Volume'],
-      difficulty: 'Easy',
-      creator: 'Aspect'
-    }
-  ];
-
-  const leaderboard = [
-    { rank: 1, user: 'alice_dev', points: 2450, rewards: '1,200 STRK' },
-    { rank: 2, user: 'crypto_analyst', points: 2180, rewards: '980 STRK' },
-    { rank: 3, user: 'data_wizard', points: 1920, rewards: '750 STRK' },
-    { rank: 4, user: 'stark_explorer', points: 1650, rewards: '500 STRK' },
-    { rank: 5, user: 'query_master', points: 1400, rewards: '450 STRK' }
-  ];
-
-  const filteredBounties = bounties.filter(bounty => 
-    activeTab === 'all' || bounty.status === activeTab
-  );
-
   const stats = {
-    activeBounties: bounties.filter(b => b.status === 'live').length,
-    totalRewards: bounties.reduce((sum, b) => sum + b.reward, 0),
+    activeBounties: 12,
+    totalRewards: 15420,
     totalAnalysts: 156,
     queriesExecuted: 12847
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
-              Starknet Analytics, Reinvented
-            </h1>
-            <p className="text-lg md:text-2xl text-blue-100/90 mb-8 max-w-3xl mx-auto">
-              Write queries, explore onchain datasets, and earn rewards. Build your reputation with beautiful, actionable analytics.
-            </p>
+  const features = [
+    {
+      icon: Code2,
+      title: 'Advanced Query Editor',
+      description: 'Write SQL queries with syntax highlighting, auto-completion, and real-time schema exploration.',
+      color: 'from-blue-500 to-cyan-500',
+      delay: 0.1
+    },
+    {
+      icon: Trophy,
+      title: 'Bounty System',
+      description: 'Earn STRK tokens by solving analytics challenges and building your reputation in the community.',
+      color: 'from-yellow-500 to-orange-500',
+      delay: 0.2
+    },
+    {
+      icon: TrendingUp,
+      title: 'Interactive Dashboards',
+      description: 'Create beautiful visualizations and share insights with the Starknet ecosystem.',
+      color: 'from-green-500 to-emerald-500',
+      delay: 0.3
+    }
+  ];
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/query"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-xl font-semibold shadow-sm"
+  const recentBounties = [
+    {
+      id: '1',
+      title: 'Analyze DeFi TVL Trends',
+      reward: 500,
+      submissions: 12,
+      difficulty: 'Medium',
+      delay: 0.1
+    },
+    {
+      id: '2',
+      title: 'Bridge Activity Analysis',
+      reward: 750,
+      submissions: 8,
+      difficulty: 'Hard',
+      delay: 0.2
+    },
+    {
+      id: '3',
+      title: 'NFT Trading Patterns',
+      reward: 300,
+      submissions: 23,
+      difficulty: 'Easy',
+      delay: 0.3
+    }
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 10
+      }
+    }
+  };
+
+  const floatingAnimation = {
+    y: [-10, 10, -10],
+    transition: {
+      duration: 6,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950 font-['Inter',sans-serif]">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <motion.div 
+            className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl"
+            animate={floatingAnimation}
+          />
+          <motion.div 
+            className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"
+            animate={{
+              y: [10, -10, 10],
+              transition: {
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }
+            }}
+          />
+          <motion.div 
+            className="absolute top-1/2 left-1/2 w-64 h-64 bg-green-400/10 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+              transition: {
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear"
+              }
+            }}
+          />
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
+          <motion.div 
+            className="text-center max-w-5xl mx-auto"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full text-blue-700 dark:text-blue-300 text-sm font-semibold mb-8 border border-blue-200/50 dark:border-blue-700/50 shadow-lg backdrop-blur-sm"
+              variants={itemVariants}
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
-                <Code2 className="h-5 w-5" /> Write Queries
-              </Link>
-              <a
-                href="https://docs.starknet.io"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold border border-white/20"
+                <Sparkles className="w-4 h-4" />
+              </motion.div>
+              Powered by Starknet
+            </motion.div>
+            
+            <motion.h1 
+              className="text-6xl md:text-8xl font-black text-gray-900 dark:text-white mb-8 leading-tight tracking-tight"
+              variants={itemVariants}
+            >
+              Analytics
+              <motion.span 
+                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                style={{
+                  backgroundSize: "200% 200%"
+                }}
+              > Reimagined</motion.span>
+            </motion.h1>
+            
+            <motion.p 
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-12 leading-relaxed font-medium"
+              variants={itemVariants}
+            >
+              Query Starknet data, create stunning visualizations, and earn rewards for your insights. 
+              <br className="hidden md:block" />
+              <motion.span 
+                className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 font-semibold"
+                whileHover={{ scale: 1.05 }}
               >
-                <ExternalLink className="h-5 w-5" /> Read Starknet Docs
-              </a>
+                Join the future of blockchain analytics.
+              </motion.span>
+            </motion.p>
+
+            <motion.div 
+              className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16"
+              variants={itemVariants}
+            >
+              <motion.div
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 25px 50px -12px rgba(59, 130, 246, 0.5)"
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  to="/query"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl transition-all duration-300 border border-blue-500/20"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Code2 className="w-6 h-6" />
+                  </motion.div>
+                  Start Querying
+                  <motion.div
+                    className="group-hover:translate-x-1 transition-transform duration-200"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </motion.div>
+                </Link>
+              </motion.div>
+              
+              <motion.div
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)"
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  to="/bounties"
+                  className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white px-8 py-4 rounded-2xl font-bold text-lg border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 shadow-lg backdrop-blur-sm"
+                >
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, -10, 10, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <Trophy className="w-6 h-6 text-yellow-500" />
+                  </motion.div>
+                  Explore Bounties
+                </Link>
+              </motion.div>
+            </motion.div>
+
+            {/* Animated Stats */}
+            <motion.div 
+              className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto"
+              variants={containerVariants}
+            >
+              {[
+                { value: stats.activeBounties, label: 'Active Bounties', color: 'text-blue-600', icon: Trophy },
+                { value: stats.totalRewards.toLocaleString(), label: 'STRK Rewards', color: 'text-green-600', icon: DollarSign },
+                { value: stats.totalAnalysts, label: 'Analysts', color: 'text-purple-600', icon: Users },
+                { value: stats.queriesExecuted.toLocaleString(), label: 'Queries Run', color: 'text-orange-600', icon: BarChart3 }
+              ].map((stat, index) => (
+                <motion.div 
+                  key={index}
+                  className="text-center group"
+                  variants={itemVariants}
+                  whileHover={{ 
+                    scale: 1.1,
+                    y: -5
+                  }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <motion.div
+                    className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-3 group-hover:shadow-lg transition-all duration-300"
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                  </motion.div>
+                  <motion.div 
+                    className={`text-4xl md:text-5xl font-black ${stat.color} mb-2`}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+                  >
+                    {stat.value}
+                  </motion.div>
+                  <div className="text-gray-600 dark:text-gray-400 font-semibold text-sm">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-24 bg-white dark:bg-gray-800 relative overflow-hidden">
+        <motion.div 
+          className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20"
+          animate={{
+            backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          style={{
+            backgroundSize: "400% 400%"
+          }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center mb-20"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <motion.h2 
+              className="text-5xl md:text-6xl font-black text-gray-900 dark:text-white mb-6"
+              whileHover={{ scale: 1.02 }}
+            >
+              Everything you need to analyze 
+              <motion.span 
+                className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"
+                animate={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                style={{
+                  backgroundSize: "200% 200%"
+                }}
+              > Starknet</motion.span>
+            </motion.h2>
+            <motion.p 
+              className="text-xl text-gray-600 dark:text-gray-300 max-w-4xl mx-auto font-medium"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+            >
+              Professional-grade tools for blockchain analytics, from SQL queries to interactive dashboards.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <motion.div 
+                key={index} 
+                className="group relative"
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: feature.delay, duration: 0.8 }}
+                whileHover={{ 
+                  y: -10,
+                  transition: { type: "spring", stiffness: 300 }
+                }}
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-20 transition-opacity duration-500 rounded-3xl blur-xl" 
+                  style={{
+                    background: `linear-gradient(135deg, ${feature.color.split(' ')[1]}, ${feature.color.split(' ')[3]})`
+                  }}
+                />
+                <motion.div 
+                  className="relative bg-white dark:bg-gray-900 p-8 rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-transparent dark:hover:border-transparent transition-all duration-500 hover:shadow-2xl backdrop-blur-sm group-hover:shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)]"
+                  whileHover={{ 
+                    scale: 1.02,
+                    rotateY: 5,
+                    rotateX: 5
+                  }}
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <motion.div 
+                    className={`inline-flex p-4 rounded-2xl bg-gradient-to-r ${feature.color} mb-6 shadow-lg`}
+                    whileHover={{ 
+                      rotate: [0, -10, 10, 0],
+                      scale: 1.1
+                    }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <feature.icon className="w-8 h-8 text-white" />
+                  </motion.div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                    {feature.description}
+                  </p>
+                  
+                  {/* Floating particles effect */}
+                  <motion.div
+                    className="absolute top-4 right-4 w-2 h-2 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100"
+                    animate={{
+                      y: [-20, -40, -20],
+                      x: [0, 10, 0],
+                      scale: [0, 1, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: 0.5
+                    }}
+                  />
+                  <motion.div
+                    className="absolute bottom-4 left-4 w-1 h-1 bg-purple-400 rounded-full opacity-0 group-hover:opacity-100"
+                    animate={{
+                      y: [20, 40, 20],
+                      x: [0, -10, 0],
+                      scale: [0, 1, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: 1
+                    }}
+                  />
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Bounties Preview */}
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950 relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 opacity-30"
+          animate={{
+            background: [
+              "radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)",
+              "radial-gradient(circle at 80% 50%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)",
+              "radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)"
+            ]
+          }}
+          transition={{ duration: 10, repeat: Infinity }}
+        />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="flex items-center justify-between mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <div>
+              <motion.h2 
+                className="text-5xl md:text-6xl font-black text-gray-900 dark:text-white mb-4"
+                whileHover={{ scale: 1.02 }}
+              >
+                Latest 
+                <motion.span 
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500"
+                  animate={{ rotate: [0, 2, -2, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                > Bounties</motion.span>
+              </motion.h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 font-medium">
+                Earn STRK tokens by solving analytics challenges
+              </p>
+            </div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
               <Link
                 to="/bounties"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold border border-white/20"
+                className="group inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-bold text-lg transition-colors duration-200"
               >
-                <Trophy className="h-5 w-5" /> Search Bounties
-              </Link>
-            </div>
-
-            <div className="mt-10 flex flex-wrap justify-center gap-8 text-base">
-              <div className="flex items-center space-x-2 text-blue-100">
-                <Code2 className="h-5 w-5" />
-                <span>Query Onchain Data</span>
-              </div>
-              <div className="flex items-center space-x-2 text-blue-100">
-                <Trophy className="h-5 w-5" />
-                <span>Compete for Bounties</span>
-              </div>
-              <div className="flex items-center space-x-2 text-blue-100">
-                <TrendingUp className="h-5 w-5" />
-                <span>Build Your Reputation</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <div className="text-3xl font-bold text-blue-600">{stats.activeBounties}</div>
-              <div className="text-gray-600 dark:text-gray-400">Active Bounties</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-green-600">{stats.totalRewards.toLocaleString()}</div>
-              <div className="text-gray-600 dark:text-gray-400">STRK in Rewards</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-purple-600">{stats.totalAnalysts}</div>
-              <div className="text-gray-600 dark:text-gray-400">Active Analysts</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-orange-600">{stats.queriesExecuted.toLocaleString()}</div>
-              <div className="text-gray-600 dark:text-gray-400">Queries Executed</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Bounties Section */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Bounties</h2>
-              <Link
-                to="/create-bounty"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                Create Bounty
-              </Link>
-            </div>
-
-            {/* Bounty Tabs */}
-            <div className="flex space-x-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg mb-6">
-              {(['all', 'live', 'completed'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium capitalize transition-colors ${
-                    activeTab === tab
-                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                  }`}
+                View all bounties
+                <motion.div
+                  className="group-hover:translate-x-1 transition-transform duration-200"
                 >
-                  {tab} ({tab === 'all' ? bounties.length : bounties.filter(b => b.status === tab).length})
-                </button>
-              ))}
-            </div>
+                  <ArrowRight className="w-5 h-5" />
+                </motion.div>
+              </Link>
+            </motion.div>
+          </motion.div>
 
-            {/* Bounty List */}
-            <div className="space-y-4">
-              {filteredBounties.map((bounty) => (
-                <div key={bounty.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {bounty.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          bounty.status === 'live' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                        }`}>
-                          {bounty.status}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          bounty.difficulty === 'Easy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                          bounty.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                          {bounty.difficulty}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 dark:text-gray-300 mb-3">{bounty.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {bounty.tags.map((tag) => (
-                          <span key={tag} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-md">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {recentBounties.map((bounty, index) => (
+              <motion.div
+                key={bounty.id}
+                initial={{ opacity: 0, y: 50, rotateX: -15 }}
+                whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: bounty.delay, duration: 0.8 }}
+                whileHover={{ 
+                  y: -15,
+                  rotateY: 5,
+                  scale: 1.02,
+                  transition: { type: "spring", stiffness: 300 }
+                }}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <Link
+                  to={`/bounty/${bounty.id}`}
+                  className="group block bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-2xl transition-all duration-500 relative overflow-hidden"
+                >
+                  {/* Animated background gradient */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    animate={{
+                      backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
+                    }}
+                    transition={{
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    style={{
+                      backgroundSize: "200% 200%"
+                    }}
+                  />
+                  
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-6">
+                      <motion.h3 
+                        className="font-bold text-xl text-gray-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        {bounty.title}
+                      </motion.h3>
+                      <motion.span 
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          bounty.difficulty === 'Easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          bounty.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        } shadow-sm`}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {bounty.difficulty}
+                      </motion.span>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600 mb-1">
-                        {bounty.reward} {bounty.currency}
-                      </div>
-                      <div className="text-sm text-gray-500 mb-2">
-                        {bounty.submissions} submissions
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Deadline: {new Date(bounty.deadline).toLocaleDateString()}
-                      </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <motion.div 
+                        className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600"
+                        whileHover={{ scale: 1.1 }}
+                        animate={{
+                          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                        }}
+                        transition={{
+                          duration: 3,
+                          repeat: Infinity,
+                          ease: "linear"
+                        }}
+                        style={{
+                          backgroundSize: "200% 200%"
+                        }}
+                      >
+                        {bounty.reward} STRK
+                      </motion.div>
+                      <motion.div 
+                        className="text-sm text-gray-500 font-semibold"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        <motion.span
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          {bounty.submissions}
+                        </motion.span> submissions
+                      </motion.div>
                     </div>
                   </div>
                   
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
-                      Created by {bounty.creator}
-                    </span>
-                    <div className="flex items-center space-x-3">
-                      <SocialShare 
-                        title={bounty.title}
-                        url={`/bounty/${bounty.id}`}
-                      />
-                      <Link
-                        to={`/bounty/${bounty.id}`}
-                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                      >
-                        <span>View Details</span>
-                        <ExternalLink className="h-4 w-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Weekly Leaderboard */}
-          <div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
-                Weekly Leaderboard
-              </h3>
-              
-              <div className="space-y-3">
-                {leaderboard.map((user) => (
-                  <div key={user.rank} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                        user.rank === 1 ? 'bg-yellow-500' :
-                        user.rank === 2 ? 'bg-gray-400' :
-                        user.rank === 3 ? 'bg-amber-600' :
-                        'bg-gray-500'
-                      }`}>
-                        {user.rank}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{user.user}</div>
-                        <div className="text-sm text-gray-500">{user.points} points</div>
-                      </div>
-                    </div>
-                    <div className="text-sm font-medium text-green-600">
-                      {user.rewards}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <h4 className="font-medium text-blue-900 dark:text-blue-200 mb-2">Community Resources</h4>
-                <div className="space-y-2 text-sm">
-                  <a 
-                    href="https://docs.starknet.io" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-700"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Starknet Documentation
-                  </a>
-                  <a 
-                    href="https://book.starknet.io" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-700"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Starknet Book
-                  </a>
-                  <a 
-                    href="https://community.starknet.io" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center text-blue-600 hover:text-blue-700"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    Community Forum
-                  </a>
-                </div>
-              </div>
-            </div>
+                  {/* Hover effect particles */}
+                  <motion.div
+                    className="absolute top-2 right-2 w-1 h-1 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100"
+                    animate={{
+                      scale: [0, 1, 0],
+                      y: [0, -20, -40]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: 0.5
+                    }}
+                  />
+                  <motion.div
+                    className="absolute bottom-2 left-2 w-1 h-1 bg-purple-400 rounded-full opacity-0 group-hover:opacity-100"
+                    animate={{
+                      scale: [0, 1, 0],
+                      y: [0, 20, 40]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: 1
+                    }}
+                  />
+                </Link>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0"
+          animate={{
+            background: [
+              "linear-gradient(45deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9), rgba(236, 72, 153, 0.9))",
+              "linear-gradient(45deg, rgba(147, 51, 234, 0.9), rgba(236, 72, 153, 0.9), rgba(59, 130, 246, 0.9))",
+              "linear-gradient(45deg, rgba(236, 72, 153, 0.9), rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9))",
+              "linear-gradient(45deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9), rgba(236, 72, 153, 0.9))"
+            ]
+          }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+        
+        {/* Floating elements */}
+        <motion.div
+          className="absolute top-10 left-10 w-20 h-20 border border-white/20 rounded-full"
+          animate={{
+            rotate: 360,
+            scale: [1, 1.2, 1]
+          }}
+          transition={{
+            rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4, repeat: Infinity }
+          }}
+        />
+        <motion.div
+          className="absolute bottom-10 right-10 w-16 h-16 border border-white/20 rounded-full"
+          animate={{
+            rotate: -360,
+            y: [-10, 10, -10]
+          }}
+          transition={{
+            rotate: { duration: 15, repeat: Infinity, ease: "linear" },
+            y: { duration: 6, repeat: Infinity }
+          }}
+        />
+        
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.h2 
+            className="text-5xl md:text-6xl font-black text-white mb-8"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            whileHover={{ scale: 1.02 }}
+          >
+            Ready to start 
+            <motion.span
+              animate={{
+                textShadow: [
+                  "0 0 20px rgba(255,255,255,0.5)",
+                  "0 0 40px rgba(255,255,255,0.8)",
+                  "0 0 20px rgba(255,255,255,0.5)"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+            > analyzing?</motion.span>
+          </motion.h2>
+          <motion.p 
+            className="text-xl text-blue-100 mb-12 font-medium"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+          >
+            Join thousands of analysts exploring Starknet data and earning rewards.
+          </motion.p>
+          <motion.div 
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+          >
+            <motion.div
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 25px 50px -12px rgba(255, 255, 255, 0.3)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link
+                to="/signup"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white text-blue-600 hover:bg-blue-50 px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <motion.div
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Star className="w-6 h-6" />
+                </motion.div>
+                Get Started Free
+                <motion.div
+                  className="group-hover:translate-x-1 transition-transform duration-200"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </motion.div>
+              </Link>
+            </motion.div>
+            <motion.div
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 25px 50px -12px rgba(255, 255, 255, 0.2)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link
+                to="/query"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-2xl font-bold text-lg border border-white/20 backdrop-blur-sm transition-all duration-300"
+              >
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 5, -5, 0]
+                  }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                >
+                  <Database className="w-6 h-6" />
+                </motion.div>
+                Try Query Editor
+              </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 };

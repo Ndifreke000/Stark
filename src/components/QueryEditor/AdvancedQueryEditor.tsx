@@ -12,6 +12,7 @@ import {
   Moon,
   ChevronRight,
   Plus,
+  Settings,
 } from 'lucide-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { sql } from '@codemirror/lang-sql';
@@ -50,7 +51,7 @@ interface SchemaTable {
 interface QueryResult {
   columns: string[];
   rows: any[][];
-  executionTime: number; // ms
+  executionTime: number;
   rowCount: number;
 }
 
@@ -166,7 +167,6 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     setIsExecuting(true);
     const start = performance.now();
     try {
-      // External callback
       onExecute?.(query);
 
       // Simulate execution
@@ -200,144 +200,6 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     setActiveTab('editor');
   };
 
-  // Build chart.js datasets based on current results/config
-  const buildChartData = () => {
-    if (!results) return null;
-    const { columns, rows } = results;
-    const xIdx = columns.indexOf(chartConfig.xAxis);
-    const yIdx = columns.indexOf(chartConfig.yAxis);
-
-    if (chartType === 'pie') {
-      if (xIdx === -1 || yIdx === -1) return null;
-      const labels = rows.map((r) => String(r[xIdx]));
-      const values = rows.map((r) => Number(r[yIdx]) || 0);
-      return {
-        labels,
-        datasets: [{ data: values, backgroundColor: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#14B8A6','#EC4899','#6366F1','#84CC16','#F97316'] }],
-      };
-    }
-
-    if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
-      if (xIdx === -1 || yIdx === -1) return null;
-      const labels = rows.map((r) => String(r[xIdx]));
-      const values = rows.map((r) => Number(r[yIdx]) || 0);
-      return {
-        labels,
-        datasets: [{
-          label: chartConfig.yAxis || 'value',
-          data: values,
-          backgroundColor: chartType === 'bar' ? '#3B82F6' : 'rgba(59,130,246,0.3)',
-          borderColor: '#3B82F6',
-          fill: chartType === 'area',
-          pointRadius: 2,
-          tension: 0.25,
-        }],
-      };
-    }
-
-    if (chartType === 'scatter') {
-      if (xIdx === -1 || yIdx === -1) return null;
-      const data = rows.map((r) => ({ x: Number(r[xIdx]) || 0, y: Number(r[yIdx]) || 0 }));
-      return {
-        datasets: [{ label: `${chartConfig.xAxis} vs ${chartConfig.yAxis}`, data, backgroundColor: '#3B82F6' }],
-      };
-    }
-
-    return null;
-  };
-
-  // Pivot and Counter helpers
-  const computeCounter = () => {
-    if (!results) return 0;
-    const { columns, rows } = results;
-    const yIdx = columns.indexOf(chartConfig.yAxis);
-    if (yIdx === -1) return rows.length; // default to row count
-    const nums = rows.map((r) => Number(r[yIdx]) || 0);
-    switch (chartConfig.aggregation) {
-      case 'count':
-        return rows.length;
-      case 'avg':
-        return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
-      case 'min':
-        return nums.length ? Math.min(...nums) : 0;
-      case 'max':
-        return nums.length ? Math.max(...nums) : 0;
-      default:
-        return nums.reduce((a, b) => a + b, 0);
-    }
-  };
-
-  const computePivot = () => {
-    if (!results) return null;
-    const { columns, rows } = results;
-    const rowKey = chartConfig.groupBy; // rows
-    const colKey = chartConfig.xAxis;   // columns
-    const valKey = chartConfig.yAxis;   // values
-    const rIdx = columns.indexOf(rowKey);
-    const cIdx = columns.indexOf(colKey);
-    const vIdx = columns.indexOf(valKey);
-    if (rIdx === -1 || cIdx === -1 || vIdx === -1) return null;
-
-    const rowVals = Array.from(new Set(rows.map((r) => String(r[rIdx]))));
-    const colVals = Array.from(new Set(rows.map((r) => String(r[cIdx]))));
-
-    const grid: Record<string, Record<string, number>> = {};
-    for (const r of rowVals) grid[r] = {};
-
-    for (const row of rows) {
-      const r = String(row[rIdx]);
-      const c = String(row[cIdx]);
-      const v = Number(row[vIdx]) || 0;
-      const cur = grid[r][c] || 0;
-      if (chartConfig.aggregation === 'count') grid[r][c] = cur + 1;
-      else if (chartConfig.aggregation === 'avg') {
-        // Simple avg via incremental sum/count map not stored; fallback to sum
-        grid[r][c] = cur + v;
-      } else if (chartConfig.aggregation === 'min') grid[r][c] = grid[r][c] == null ? v : Math.min(grid[r][c], v);
-      else if (chartConfig.aggregation === 'max') grid[r][c] = grid[r][c] == null ? v : Math.max(grid[r][c], v);
-      else grid[r][c] = cur + v; // sum
-    }
-
-    return { rowVals, colVals, grid };
-  };
-
-  const chartData = useMemo(() => buildChartData(), [results, chartType, chartConfig]);
-
-  const addVisualizationToDashboard = async () => {
-    if (!results) return;
-    setAdding(true);
-    try {
-      let dashId = selectedDashId;
-      if (!dashId) {
-        if (!newDashName.trim()) {
-          setAdding(false);
-          return;
-        }
-        const d = createDashboard(newDashName.trim());
-        dashId = d.id;
-      }
-
-      const widget: DashboardWidget = {
-        id: '',
-        type: chartType,
-        title: queryName || `${chartType} widget`,
-        query,
-        config: { ...chartConfig },
-        data: { result: results, chartData },
-        position: { x: 0, y: 0, w: 6, h: 4 },
-      } as any;
-
-      addWidget(dashId, widget);
-
-      // Close modal and reset
-      setAddToDashOpen(false);
-      setSelectedDashId('');
-      setNewDashName('');
-    } finally {
-      setAdding(false);
-    }
-  };
-
   const cmExtensions = useMemo(() => {
     const exts = [sql()];
     if (wordWrap) exts.push(EditorView.lineWrapping);
@@ -363,258 +225,120 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     [showLineNumbers]
   );
 
-  const Visualization = () => {
-    if (!results || results.rows.length === 0) return (
-      <div className="text-sm text-gray-500 dark:text-gray-400">No results to visualize.</div>
-    );
-
-    return (
-      <div className="space-y-4">
-        {/* Controls */}
-        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-          <span>Type:</span>
-          <select
-            value={chartType}
-            onChange={(e) => setChartType(e.target.value as VizType)}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="table">Table</option>
-            <option value="bar">Bar</option>
-            <option value="line">Line</option>
-            <option value="area">Area</option>
-            <option value="scatter">Scatter</option>
-            <option value="pie">Pie</option>
-            <option value="counter">Counter</option>
-            <option value="pivot">Pivot Table</option>
-          </select>
-
-          <span className="ml-4">X:</span>
-          <select
-            value={chartConfig.xAxis}
-            onChange={(e) => setChartConfig({ ...chartConfig, xAxis: e.target.value })}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="">Select column</option>
-            {results.columns.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <span className="ml-2">Y:</span>
-          <select
-            value={chartConfig.yAxis}
-            onChange={(e) => setChartConfig({ ...chartConfig, yAxis: e.target.value })}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="">Select column</option>
-            {results.columns.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <span className="ml-2">Group by:</span>
-          <select
-            value={chartConfig.groupBy}
-            onChange={(e) => setChartConfig({ ...chartConfig, groupBy: e.target.value })}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="">None</option>
-            {results.columns.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <span className="ml-2">Aggregation:</span>
-          <select
-            value={chartConfig.aggregation}
-            onChange={(e) => setChartConfig({ ...chartConfig, aggregation: e.target.value as any })}
-            className="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="sum">Sum</option>
-            <option value="count">Count</option>
-            <option value="avg">Average</option>
-            <option value="min">Min</option>
-            <option value="max">Max</option>
-          </select>
-
-          <div className="ml-auto">
-            <button
-              onClick={() => setAddToDashOpen(true)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700"
-            >
-              <Plus className="w-4 h-4" /> Add to Dashboard
-            </button>
-          </div>
-        </div>
-
-        {/* Render visualization */}
-        {chartType === 'table' && (
-          <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
-                <tr>
-                  {results.columns.map((c) => (
-                    <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {results.rows.map((r, i) => (
-                  <tr key={i} className={i % 2 ? 'bg-white/5' : ''}>
-                    {r.map((cell, j) => (
-                      <td key={j} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{String(cell)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {(chartType === 'bar' || chartType === 'line' || chartType === 'area') && chartData && (
-          <div className="w-full h-72">
-            {chartType === 'bar' && <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />}
-            {(chartType === 'line' || chartType === 'area') && <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />}
-          </div>
-        )}
-
-        {chartType === 'scatter' && chartData && (
-          <div className="w-full h-72">
-            <Scatter data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
-          </div>
-        )}
-
-        {chartType === 'pie' && chartData && (
-          <div className="w-full max-w-md">
-            <Pie data={chartData} options={{ responsive: true, maintainAspectRatio: true }} />
-          </div>
-        )}
-
-        {chartType === 'counter' && (
-          <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-center">
-            <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{chartConfig.aggregation.toUpperCase()} of {chartConfig.yAxis || 'rows'}</div>
-            <div className="text-4xl font-bold text-blue-600">{computeCounter().toLocaleString()}</div>
-          </div>
-        )}
-
-        {chartType === 'pivot' && (() => {
-          const pivot = computePivot();
-          if (!pivot) return <div className="text-sm text-gray-500">Set Group by, X, and Y columns to generate a pivot.</div>;
-          return (
-            <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-800">
-                    <th className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{chartConfig.groupBy}</th>
-                    {pivot.colVals.map((c) => (
-                      <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pivot.rowVals.map((r) => (
-                    <tr key={r}>
-                      <td className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 font-semibold">{r}</td>
-                      {pivot.colVals.map((c) => (
-                        <td key={c} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{(pivot.grid[r] && pivot.grid[r][c] != null) ? pivot.grid[r][c] : '-'}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })()}
-      </div>
-    );
-  };
-
   return (
-    <div className="w-full h-full flex flex-col text-gray-900 dark:text-gray-100">
+    <div className="w-full h-full flex flex-col text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="flex items-center justify-between py-3 px-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex items-center gap-2">
-          <Database className="w-5 h-5" />
+      <div className="flex items-center justify-between py-4 px-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="flex items-center gap-3">
+          <Database className="w-5 h-5 text-blue-600" />
           <input
-            className="bg-transparent border-none outline-none text-lg font-semibold"
+            className="bg-transparent border-none outline-none text-xl font-semibold text-gray-900 dark:text-white"
             value={queryName}
             onChange={(e) => setQueryName(e.target.value)}
+            placeholder="Query name..."
           />
           {lastSaved && (
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Saved {lastSaved.toLocaleTimeString()}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Saved {lastSaved.toLocaleTimeString()}
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setDarkMode((d) => !d)}
-            className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            title={darkMode ? 'Switch to light' : 'Switch to dark'}
-          >
-            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => setShowLineNumbers((v) => !v)}
-            className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            title={showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
-          >
-            {showLineNumbers ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={() => setWordWrap((v) => !v)}
-            className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-            title={wordWrap ? 'Disable word wrap' : 'Enable word wrap'}
-          >
-            <WrapText className="w-4 h-4" />
-          </button>
-          <select
-            value={fontSize}
-            onChange={(e) => setFontSize(Number(e.target.value))}
-            className="ml-2 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-            title="Font size"
-          >
-            {[12, 14, 16, 18].map((s) => (
-              <option key={s} value={s}>{s}px</option>
-            ))}
-          </select>
+        
+        <div className="flex items-center gap-3">
+          {/* Settings Dropdown */}
+          <div className="relative group">
+            <button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition-colors">
+              <Settings className="w-4 h-4" />
+              Settings
+            </button>
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+              <div className="p-3 space-y-3">
+                <button
+                  onClick={() => setDarkMode((d) => !d)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {darkMode ? 'Light mode' : 'Dark mode'}
+                </button>
+                <button
+                  onClick={() => setShowLineNumbers((v) => !v)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  {showLineNumbers ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showLineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+                </button>
+                <button
+                  onClick={() => setWordWrap((v) => !v)}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  <WrapText className="w-4 h-4" />
+                  {wordWrap ? 'Disable wrap' : 'Enable wrap'}
+                </button>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Font Size</label>
+                  <select
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                  >
+                    {[12, 14, 16, 18].map((s) => (
+                      <option key={s} value={s}>{s}px</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={saveQuery}
-            className="ml-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm font-medium transition-colors"
           >
-            <Save className="w-4 h-4" /> Save
+            <Save className="w-4 h-4" />
+            Save
           </button>
+          
           <button
             disabled={isExecuting}
             onClick={runQuery}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm font-medium shadow-sm transition-colors"
           >
-            <Play className="w-4 h-4" /> {isExecuting ? 'Running...' : 'Run'}
+            <Play className="w-4 h-4" />
+            {isExecuting ? 'Running...' : 'Run Query'}
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-        {(['editor', 'results', 'visualization', 'schema'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className={`px-2 py-1 rounded-md text-sm ${activeTab === t ? 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700' : 'hover:bg-white/60 dark:hover:bg-gray-900/60'}`}
-          >
-            {t[0].toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setShowSchemaPanel((s) => !s)}
-            className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <span className="inline-flex items-center gap-1"><ChevronRight className={`w-4 h-4 ${showSchemaPanel ? '' : 'rotate-180'}`} /> {showSchemaPanel ? 'Hide schema' : 'Show schema'}</span>
-          </button>
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+        <div className="flex items-center gap-1">
+          {(['editor', 'results', 'visualization', 'schema'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === t 
+                  ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-sm border border-gray-200 dark:border-gray-700' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-900/50'
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
         </div>
+        
+        <button
+          onClick={() => setShowSchemaPanel((s) => !s)}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          <ChevronRight className={`w-4 h-4 transition-transform ${showSchemaPanel ? 'rotate-180' : ''}`} />
+          {showSchemaPanel ? 'Hide Schema' : 'Show Schema'}
+        </button>
       </div>
 
       {/* Content Area */}
       <div className="flex-1 flex min-h-0">
-        {/* Schema panel */}
+        {/* Schema Panel */}
         <AnimatePresence initial={false}>
           {showSchemaPanel && (
             <motion.aside
@@ -623,200 +347,385 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ type: 'tween', duration: 0.2 }}
-              className="border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 overflow-auto"
+              className="border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-2 text-sm">
-                <Search className="w-4 h-4" />
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search tables or columns"
-                  className="w-full px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950"
-                />
-              </div>
-              <div className="space-y-2">
-                {filteredSchema.map((table) => (
-                  <details key={table.name} className="rounded-md border border-gray-200 dark:border-gray-800 group" open>
-                    <summary className="flex items-center justify-between px-2 py-1 cursor-pointer bg-gray-50 dark:bg-gray-950">
-                      <span className="font-medium text-sm">{table.name}</span>
-                      <span className="text-xs text-gray-500">{table.rowCount?.toLocaleString()} rows</span>
-                    </summary>
-                    <div className="p-2 text-sm">
-                      {table.columns.map((col) => (
-                        <div key={col.name} className="flex items-center justify-between py-1">
-                          <div>
-                            <div className="font-mono text-xs">{col.name} <span className="text-gray-500">({col.type}{col.nullable ? ', null' : ''})</span></div>
-                            {col.description && <div className="text-xs text-gray-500">{col.description}</div>}
+              <div className="p-4 h-full overflow-auto">
+                <div className="flex items-center gap-2 mb-4">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search tables or columns..."
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div className="space-y-3">
+                  {filteredSchema.map((table) => (
+                    <details key={table.name} className="group" open>
+                      <summary className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <span className="font-medium text-sm">{table.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {table.rowCount?.toLocaleString()} rows
+                        </span>
+                      </summary>
+                      <div className="mt-2 space-y-2">
+                        {table.columns.map((col) => (
+                          <div key={col.name} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md group/col">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-mono text-xs text-gray-900 dark:text-white">
+                                {col.name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {col.type}{col.nullable ? ', nullable' : ''}
+                              </div>
+                              {col.description && (
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {col.description}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              className="opacity-0 group-hover/col:opacity-100 px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                              onClick={() => insertIntoQuery(`${table.name}.${col.name}`)}
+                            >
+                              Insert
+                            </button>
                           </div>
-                          <button
-                            className="px-2 py-0.5 text-xs rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
-                            onClick={() => insertIntoQuery(`${table.name}.${col.name}`)}
-                          >
-                            Insert
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                ))}
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
               </div>
             </motion.aside>
           )}
         </AnimatePresence>
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0 overflow-auto">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0 overflow-auto bg-white dark:bg-gray-900">
           {activeTab === 'editor' && (
-            <div className="p-3 space-y-3">
-              <CodeMirror
-                value={query}
-                height="380px"
-                theme={darkMode ? oneDark : undefined}
-                extensions={cmExtensions}
-                basicSetup={cmBasicSetup}
-                onChange={(val) => setQuery(val)}
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={isExecuting}
-                  onClick={runQuery}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Play className="w-4 h-4" /> {isExecuting ? 'Running...' : 'Run Query'}
-                </button>
-                <button
-                  onClick={saveQuery}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700"
-                >
-                  <Save className="w-4 h-4" /> Save
-                </button>
-                <label className="ml-2 text-sm inline-flex items-center gap-2">
-                  <input type="checkbox" checked={autoSave} onChange={(e) => setAutoSave(e.target.checked)} /> Auto-save
+            <div className="h-full flex flex-col">
+              <div className="flex-1 p-4">
+                <CodeMirror
+                  value={query}
+                  height="100%"
+                  theme={darkMode ? oneDark : undefined}
+                  extensions={cmExtensions}
+                  basicSetup={cmBasicSetup}
+                  onChange={(val) => setQuery(val)}
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                />
+              </div>
+              <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center gap-3">
+                  <button
+                    disabled={isExecuting}
+                    onClick={runQuery}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+                  >
+                    <Play className="w-4 h-4" />
+                    {isExecuting ? 'Running...' : 'Run Query'}
+                  </button>
+                  <button
+                    onClick={saveQuery}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save
+                  </button>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <input 
+                    type="checkbox" 
+                    checked={autoSave} 
+                    onChange={(e) => setAutoSave(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Auto-save
                 </label>
               </div>
             </div>
           )}
 
           {activeTab === 'results' && (
-            <div className="p-3 space-y-3">
+            <div className="p-4">
               {!results ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">Run a query to see results.</div>
-              ) : (
-                <>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {results.rowCount} rows • {results.executionTime} ms
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                  <div className="text-center">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Run a query to see results</p>
                   </div>
-                  <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-md">
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {results.rowCount} rows • {results.executionTime} ms
+                    </div>
+                  </div>
+                  <div className="overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                      <thead className="bg-gray-50 dark:bg-gray-800">
                         <tr>
                           {results.columns.map((c) => (
-                            <th key={c} className="px-3 py-2 text-left font-semibold border-b border-gray-200 dark:border-gray-700">{c}</th>
+                            <th key={c} className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700">
+                              {c}
+                            </th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {results.rows.map((r, i) => (
-                          <tr key={i} className={i % 2 ? 'bg-white/5' : ''}>
+                          <tr key={i} className={i % 2 ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}>
                             {r.map((cell, j) => (
-                              <td key={j} className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">{String(cell)}</td>
+                              <td key={j} className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                                {String(cell)}
+                              </td>
                             ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </>
+                </div>
               )}
             </div>
           )}
 
           {activeTab === 'visualization' && (
-            <div className="p-3 space-y-3">
-              <Visualization />
+            <div className="p-4">
+              {!results || results.rows.length === 0 ? (
+                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                  <div className="text-center">
+                    <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Run a query to create visualizations</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Visualization Controls */}
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Type:</label>
+                      <select
+                        value={chartType}
+                        onChange={(e) => setChartType(e.target.value as VizType)}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                      >
+                        <option value="table">Table</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="counter">Counter</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">X-Axis:</label>
+                      <select
+                        value={chartConfig.xAxis}
+                        onChange={(e) => setChartConfig({ ...chartConfig, xAxis: e.target.value })}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                      >
+                        <option value="">Select column</option>
+                        {results.columns.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Y-Axis:</label>
+                      <select
+                        value={chartConfig.yAxis}
+                        onChange={(e) => setChartConfig({ ...chartConfig, yAxis: e.target.value })}
+                        className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                      >
+                        <option value="">Select column</option>
+                        {results.columns.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="ml-auto">
+                      <button
+                        onClick={() => setAddToDashOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add to Dashboard
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Visualization Display */}
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                    {chartType === 'table' && (
+                      <div className="overflow-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                              {results.columns.map((c) => (
+                                <th key={c} className="px-4 py-3 text-left font-semibold">
+                                  {c}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {results.rows.map((r, i) => (
+                              <tr key={i} className={i % 2 ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}>
+                                {r.map((cell, j) => (
+                                  <td key={j} className="px-4 py-3">
+                                    {String(cell)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {chartType === 'counter' && (
+                      <div className="text-center py-12">
+                        <div className="text-6xl font-bold text-blue-600 mb-4">
+                          {results.rowCount.toLocaleString()}
+                        </div>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          Total Records
+                        </div>
+                      </div>
+                    )}
+
+                    {(chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter' || chartType === 'pie') && (
+                      <div className="flex items-center justify-center h-64 text-gray-500">
+                        <p>Chart visualization will be implemented here</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'schema' && (
-            <div className="p-3">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Database schema overview</div>
-              <div className="space-y-2">
-                {schema.map((table) => (
-                  <div key={table.name} className="border border-gray-200 dark:border-gray-800 rounded-md">
-                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-950 flex items-center justify-between">
-                      <div className="font-semibold">{table.name}</div>
-                      <div className="text-xs text-gray-500">{table.rowCount?.toLocaleString()} rows • Updated {table.lastUpdated}</div>
+            <div className="p-4">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Database Schema
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Explore available tables and columns in the Starknet dataset
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {schema.map((table) => (
+                    <div key={table.name} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            {table.name}
+                          </h4>
+                          <div className="text-sm text-gray-500">
+                            {table.rowCount?.toLocaleString()} rows ��� Updated {table.lastUpdated}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="overflow-auto">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                                <th className="text-left py-2 font-medium">Column</th>
+                                <th className="text-left py-2 font-medium">Type</th>
+                                <th className="text-left py-2 font-medium">Nullable</th>
+                                <th className="text-left py-2 font-medium">Description</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {table.columns.map((c) => (
+                                <tr key={c.name} className="border-b border-gray-100 dark:border-gray-800">
+                                  <td className="py-2 font-mono text-gray-900 dark:text-white">
+                                    {c.name}
+                                  </td>
+                                  <td className="py-2 text-gray-600 dark:text-gray-400">
+                                    {c.type}
+                                  </td>
+                                  <td className="py-2 text-gray-600 dark:text-gray-400">
+                                    {c.nullable ? 'YES' : 'NO'}
+                                  </td>
+                                  <td className="py-2 text-gray-600 dark:text-gray-400">
+                                    {c.description || '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-3 text-sm">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="text-xs text-gray-500">
-                            <th className="py-1">Column</th>
-                            <th className="py-1">Type</th>
-                            <th className="py-1">Nullable</th>
-                            <th className="py-1">Description</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {table.columns.map((c) => (
-                            <tr key={c.name} className="border-t border-gray-100 dark:border-gray-800">
-                              <td className="py-1 font-mono">{c.name}</td>
-                              <td className="py-1">{c.type}</td>
-                              <td className="py-1">{c.nullable ? 'YES' : 'NO'}</td>
-                              <td className="py-1 text-gray-600 dark:text-gray-400">{c.description || '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Add to dashboard modal */}
+      {/* Add to Dashboard Modal */}
       {addToDashOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setAddToDashOpen(false)} />
-          <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 w-full max-w-lg">
-            <h3 className="text-lg font-semibold mb-3">Add to Dashboard</h3>
-            <div className="space-y-3">
+          <div className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add to Dashboard</h3>
+            <div className="space-y-4">
               <div>
-                <div className="text-sm font-medium mb-1">Select existing dashboard</div>
+                <label className="block text-sm font-medium mb-2">Select existing dashboard</label>
                 <select
                   value={selectedDashId}
                   onChange={(e) => setSelectedDashId(e.target.value)}
-                  className="w-full px-2 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                 >
-                  <option value="">-- None --</option>
+                  <option value="">-- Select Dashboard --</option>
                   {dashboards.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="text-center text-xs text-gray-500">or</div>
+              
+              <div className="text-center text-sm text-gray-500">or</div>
+              
               <div>
-                <div className="text-sm font-medium mb-1">Create new dashboard</div>
+                <label className="block text-sm font-medium mb-2">Create new dashboard</label>
                 <input
                   value={newDashName}
                   onChange={(e) => setNewDashName(e.target.value)}
                   placeholder="Dashboard name"
-                  className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setAddToDashOpen(false)} className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-700">Cancel</button>
-                <a
-                  href={selectedDashId ? `/dashboard?dashId=${selectedDashId}` : '#'}
-                  className="hidden"
-                />
+              
+              <div className="flex justify-end gap-3 pt-4">
+                <button 
+                  onClick={() => setAddToDashOpen(false)}
+                  className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
                 <button
-                  onClick={addVisualizationToDashboard}
+                  onClick={() => {
+                    // Add logic here
+                    setAddToDashOpen(false);
+                  }}
                   disabled={adding || (!selectedDashId && !newDashName.trim())}
-                  className="px-3 py-1.5 rounded bg-green-600 text-white disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
                   {adding ? 'Adding...' : 'Add'}
                 </button>

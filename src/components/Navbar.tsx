@@ -27,6 +27,7 @@ const Navbar = () => {
     { to: '/query', label: 'Query Editor', icon: Code2 },
     { to: '/dashboard', label: 'Dashboards', icon: BarChart3 },
     { to: '/bounties', label: 'Bounties', icon: Trophy },
+    { to: '/swap', label: 'Swap', icon: Zap },
   ];
 
   return (

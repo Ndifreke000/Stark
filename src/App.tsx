@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
+import SwapPage from './pages/SwapPage';
 import Portfolio from './pages/Portfolio';
 import DashboardBuilder from './pages/DashboardBuilder';
 import AdvancedQueryEditorPage from './pages/AdvancedQueryEditorPage';
@@ -38,6 +39,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/premium" element={<Premium />} />
               <Route path="/bounties" element={<Bounties />} />
+              <Route path="/swap" element={<SwapPage />} />
             </Routes>
           </main>
           <Toaster position="top-right" />

@@ -47,16 +47,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
         stiffness: 100, 
         damping: 10 
       }}
-      whileHover={hover ? {
-        y: -8,
-        scale: 1.02,
-        boxShadow: glow 
-          ? "0 25px 50px -12px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)"
-          : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        rotateY: rotation ? 5 : 0,
-        rotateX: rotation ? 5 : 0,
-        transition: { type: "spring", stiffness: 300, damping: 20 }
-      } : {}}
+      whileHover={{}}
       whileTap={onClick ? { scale: 0.98 } : {}}
       onClick={onClick}
       style={{ transformStyle: "preserve-3d" }}

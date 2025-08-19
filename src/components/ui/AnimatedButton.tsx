@@ -55,14 +55,7 @@ const AnimatedButton: React.FC<AnimatedButtonProps> = ({
       onClick={onClick}
       disabled={disabled || loading}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
-      whileHover={!disabled && !loading ? { 
-        scale: 1.05,
-        boxShadow: variant === 'primary' ? "0 25px 50px -12px rgba(59, 130, 246, 0.5)" :
-                   variant === 'success' ? "0 25px 50px -12px rgba(34, 197, 94, 0.5)" :
-                   variant === 'danger' ? "0 25px 50px -12px rgba(239, 68, 68, 0.5)" :
-                   variant === 'warning' ? "0 25px 50px -12px rgba(245, 158, 11, 0.5)" :
-                   "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-      } : {}}
+      whileHover={{}}
       whileTap={!disabled && !loading ? { scale: 0.95 } : {}}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}

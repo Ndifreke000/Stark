@@ -351,8 +351,8 @@ const DashboardBuilder = () => {
               onLayoutChange={(curr, all) => onLayoutChange(curr)}
             >
               {dashboard.widgets.map((widget) => (
-                <div key={widget.id}>
-                  <AnimatedCard className="p-3 h-full" hover={true} glow={true}>
+                <div key={widget.id}>  
+                  <AnimatedCard className="p-5 h-full" hover={true} glow={true}>
                     <div className="flex justify-between items-center mb-2 drag-handle cursor-move">
                       <motion.h3 className="font-black text-sm text-gray-900 dark:text-white" whileHover={{ scale: 1.02 }}>{widget.title}</motion.h3>
                       <div className="flex items-center space-x-1">
@@ -365,7 +365,7 @@ const DashboardBuilder = () => {
                       {(() => {
                         if (widget.type === 'text') {
                           return (
-                            <div className="h-full p-3 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 overflow-auto text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+                            <div className="h-full p-4 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 overflow-auto text-sm leading-relaxed text-gray-800 dark:text-gray-200">
                               {widget.content || 'Empty'}
                             </div>
                           );

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Tag as TagIcon, ExternalLink, Trophy, Filter, Sparkles, Zap, Star, Target } from 'lucide-react';
-import SocialShare from '../components/SocialShare';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
@@ -379,7 +378,7 @@ const Bounties: React.FC = () => {
                   className="h-full"
                 >
                   <AnimatedCard
-                    className="p-6 h-full group relative overflow-hidden flex flex-col"
+                    className="p-7 md:p-8 h-full group relative overflow-hidden flex flex-col"
                     hover={true}
                     delay={index * 0.1}
                     glow={true}
@@ -387,7 +386,7 @@ const Bounties: React.FC = () => {
                   >
                     {/* Status Badge */}
                     <motion.div
-                      className="absolute top-3 right-3 z-10"
+                      className="absolute top-0 right-0 p-1 sm:top-1 sm:right-1 z-10"
                       whileHover={{ scale: 1.1, rotate: 5 }}
                     >
                       <span
@@ -403,7 +402,7 @@ const Bounties: React.FC = () => {
 
                     {/* Difficulty Badge */}
                     <motion.div
-                      className="absolute top-3 left-3 z-10"
+                      className="absolute top-0 left-0 p-1 sm:top-1 sm:left-1 z-10"
                       whileHover={{ scale: 1.1, rotate: -5 }}
                     >
                       <span
@@ -417,26 +416,42 @@ const Bounties: React.FC = () => {
                       </span>
                     </motion.div>
 
-                    <div className="mt-8 flex-1 flex flex-col">
-                      <motion.h3 
-                        className="text-lg font-black text-gray-900 dark:text-white leading-tight mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300 min-h-[3.5rem] flex items-start"
-                        whileHover={{ scale: 1.02 }}
-                        title={bounty.title}
-                      >
-                        <span className="line-clamp-2 break-words">
+                    <div className="mt-8 flex-1 flex flex-col space-y-5">
+                      <div className="flex flex-col space-y-1.5">
+                        <motion.h3 
+                          className="text-lg font-black text-gray-900 dark:text-white leading-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300"
+                          whileHover={{ scale: 1.02 }}
+                          title={bounty.title}
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            wordBreak: 'break-word',
+                            minHeight: '2.6rem'
+                          }}
+                        >
                           {bounty.title}
-                        </span>
-                      </motion.h3>
+                        </motion.h3>
 
-                      <p className="text-gray-600 dark:text-gray-300 mb-4 font-medium leading-relaxed text-sm flex-1 min-h-[4.5rem]"
-                         title={bounty.description}>
-                        <span className="line-clamp-3 break-words">
+                        <p
+                          className="text-gray-600 dark:text-gray-300 mb-0 font-medium leading-relaxed text-sm flex-1"
+                          title={bounty.description}
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            wordBreak: 'break-word',
+                            minHeight: '3.9rem'
+                          }}
+                        >
                           {bounty.description}
-                        </span>
-                      </p>
+                        </p>
+                      </div>
 
                       <motion.div 
-                        className="flex flex-wrap gap-1.5 mb-4 min-h-[2rem]"
+                        className="flex flex-wrap gap-3 pt-2 pb-1"
                         variants={containerVariants}
                       >
                         {bounty.tags.slice(0, 3).map((tag, tagIndex) => (
@@ -460,49 +475,24 @@ const Bounties: React.FC = () => {
                         )}
                       </motion.div>
 
-                      <div className="flex items-end justify-between mt-auto">
+                      <div className="flex items-center justify-between mt-auto pt-3">
                         <div className="flex-1 min-w-0">
-                          <motion.div 
-                            className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 truncate"
-                            whileHover={{ scale: 1.05 }}
-                            animate={{
-                              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                            }}
-                            transition={{
-                              duration: 3,
-                              repeat: Infinity,
-                              ease: "linear"
-                            }}
-                            style={{
-                              backgroundSize: "200% 200%"
-                            }}
-                          >
-                            {bounty.reward} {bounty.currency}
-                          </motion.div>
-                          <motion.div 
-                            className="text-xs text-gray-500 font-semibold mt-1"
-                            whileHover={{ scale: 1.05 }}
-                          >
-                            <motion.span
-                              animate={{ scale: [1, 1.1, 1] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                            >
-                              {bounty.submissions}
-                            </motion.span> submissions
-                          </motion.div>
+                          <div className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white truncate">
+                            {bounty.reward} <span className="text-xl md:text-2xl font-bold align-top">{bounty.currency}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                            {bounty.submissions} submissions
+                          </div>
                         </div>
                         
-                        <div className="flex items-center gap-2 ml-2">
-                          <motion.div whileHover={{ scale: 1.1 }}>
-                            <SocialShare title={bounty.title} url={`/bounty/${bounty.id}`} />
-                          </motion.div>
+                        <div className="flex items-center ml-2">
                           <Link to={`/bounty/${bounty.id}`}>
                             <AnimatedButton
                               variant="primary"
                               size="sm"
                               icon={ExternalLink}
                               iconPosition="right"
-                              className="text-xs px-3 py-2"
+                              className="text-xs px-3 py-2 gap-2"
                             >
                               View
                             </AnimatedButton>
@@ -561,9 +551,9 @@ const Bounties: React.FC = () => {
               <Link to="/create-bounty">
                 <AnimatedButton
                   variant="secondary"
-                  size="lg"
+                  size="md"
                   icon={Zap}
-                  className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl"
+                  className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl gap-3 text-base"
                 >
                   Create Bounty
                 </AnimatedButton>

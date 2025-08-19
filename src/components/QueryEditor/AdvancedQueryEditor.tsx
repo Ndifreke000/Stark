@@ -27,6 +27,7 @@ import {
   Dashboard as StoreDashboard,
   DashboardWidget,
 } from '../../services/dashboardStore';
+import { Spellbook } from '../../spellbook/engine';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -169,20 +170,14 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
     try {
       onExecute?.(query);
 
-      // Simulate execution
-      await new Promise((r) => setTimeout(r, 700));
-      const rows = [
-        [100001, '0xabc...', '2024-01-21 10:00:00', 1.23],
-        [100002, '0xdef...', '2024-01-21 10:01:00', 0.75],
-        [100003, '0x123...', '2024-01-21 10:02:00', 3.45],
-        [100004, '0x456...', '2024-01-21 10:03:00', 0.15],
-      ];
+      // Execute via Spellbook (dbt-style metrics engine)
+      const res = Spellbook.executeQuery(query);
       const end = performance.now();
       setResults({
-        columns: ['block_number', 'hash', 'timestamp', 'value'],
-        rows,
+        columns: res.columns,
+        rows: res.rows,
         executionTime: Math.round(end - start),
-        rowCount: rows.length,
+        rowCount: res.rows.length,
       });
       setActiveTab('visualization');
     } finally {
@@ -515,11 +510,12 @@ const AdvancedQueryEditor: React.FC<AdvancedQueryEditorProps> = ({
                       >
                         <option value="table">Table</option>
                         <option value="bar">Bar Chart</option>
-                        <option value="line">Line Chart</option>
                         <option value="area">Area Chart</option>
-                        <option value="scatter">Scatter Plot</option>
+                        <option value="scatter">Scatter Chart</option>
+                        <option value="line">Line Chart</option>
                         <option value="pie">Pie Chart</option>
                         <option value="counter">Counter</option>
+                        <option value="pivot">Pivot Table</option>
                       </select>
                     </div>
 

@@ -31,7 +31,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
     right: { x: -50, opacity: 0 }
   };
 
-  const baseClasses = `bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 ${
+  const baseClasses = `group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 p-5 md:p-6 ${
     onClick ? 'cursor-pointer' : ''
   } ${gradient ? 'bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900' : ''}`;
 

@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -44,12 +48,14 @@ async function main() {
       role: Role.USER,
     },
   });
+  console.log(`Created user: ${user.email}`);
 
   // Create sample bounties
   const bounty1 = await prisma.bounty.create({
     data: {
       title: 'Starknet Transaction Analysis',
-      description: 'Analyze the transaction patterns on Starknet mainnet for the last 30 days. Focus on gas usage trends and popular contract interactions.',
+      description:
+        'Analyze the transaction patterns on Starknet mainnet for the last 30 days. Focus on gas usage trends and popular contract interactions.',
       reward_amount: 500.0,
       created_by: admin.id,
     },
@@ -58,21 +64,24 @@ async function main() {
   const bounty2 = await prisma.bounty.create({
     data: {
       title: 'DeFi Protocol Comparison',
-      description: 'Compare the top 3 DeFi protocols on Starknet in terms of TVL, user adoption, and security features. Provide detailed analysis with charts.',
+      description:
+        'Compare the top 3 DeFi protocols on Starknet in terms of TVL, user adoption, and security features. Provide detailed analysis with charts.',
       reward_amount: 750.0,
       created_by: admin.id,
     },
   });
+  console.log(`Created bounty: ${bounty2.title}`);
 
   const bounty3 = await prisma.bounty.create({
     data: {
       title: 'Cairo Contract Optimization Study',
-      description: 'Research and document best practices for optimizing Cairo smart contracts for gas efficiency and performance.',
+      description:
+        'Research and document best practices for optimizing Cairo smart contracts for gas efficiency and performance.',
       reward_amount: 1000.0,
       created_by: admin.id,
     },
   });
-
+  console.log(`Created bounty: ${bounty3.title}`);
   // Create sample submissions
   await prisma.submission.create({
     data: {
@@ -95,6 +104,6 @@ main()
     console.error('❌ Seed failed:', e);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
+  .finally(() => {
+    void prisma.$disconnect();
   });

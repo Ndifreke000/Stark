@@ -195,3 +195,332 @@ This document describes the backend architecture, core responsibilities, API sur
 ---
 
 This backend plan enables immediate development with local mocks and a clean path toward full on-chain integration using StarkNet RPC and an indexing pipeline.
+
+# Starknet Analyst Bounty Platform Backend
+
+A complete NestJS backend application for managing bounty submissions and analyst rewards on the Starknet ecosystem.
+
+## 🏗️ Tech Stack
+
+- **Framework**: NestJS (TypeScript)
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT with bcrypt password hashing
+- **Validation**: class-validator
+- **Authorization**: Role-based access control (Admin, Analyst, User)
+
+## 📊 Database Schema
+
+### Tables:
+- **users**: id, name, email, password_hash, role, created_at
+- **bounties**: id, title, description, reward_amount, status (open, closed, reviewing), created_by (admin id), created_at
+- **submissions**: id, bounty_id, analyst_id, link_to_work, status (pending, approved, rejected), submitted_at
+
+## 🚀 Setup Instructions
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment Setup
+
+Copy the environment template:
+
+```bash
+cp .env.example .env
+```
+
+Update the `.env` file with your configuration:
+
+```env
+# Database
+DATABASE_URL="postgresql://bounty_user:bounty_password@localhost:5432/starknet_bounty?schema=public"
+
+# JWT Configuration
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
+JWT_EXPIRES_IN="7d"
+
+# Server Configuration
+PORT=3000
+NODE_ENV="development"
+```
+
+### 3. Start PostgreSQL Database
+
+Start the PostgreSQL database using Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+Wait for the database to be ready (check health status):
+
+```bash
+docker-compose ps
+```
+
+### 4. Run Database Migrations
+
+Generate Prisma client and run migrations:
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+```
+
+### 5. Seed the Database
+
+Create initial admin, analyst, and user accounts with sample data:
+
+```bash
+npm run prisma:seed
+```
+
+**Default accounts created:**
+- **Admin**: admin@starknet.io / admin123
+- **Analyst**: analyst@starknet.io / analyst123
+- **User**: user@starknet.io / user123
+
+### 6. Start the NestJS Server
+
+Start the development server:
+
+```bash
+npm run start:dev
+```
+
+The server will start on `http://localhost:3000`
+
+## 🧪 Testing with Postman
+
+### 7. Import Postman Collection
+
+1. Open Postman
+2. Click "Import" in the top left
+3. Select the `postman_collection.json` file from the project root
+4. The collection "Starknet Bounty Platform API" will be imported
+
+### 8. Test All Endpoints
+
+The Postman collection includes:
+
+#### Authentication Endpoints:
+- **POST** `/api/auth/login` - Login with email/password
+- **POST** `/api/auth/signup` - Register new user
+
+#### User Endpoints:
+- **GET** `/api/users/profile` - Get current user profile
+- **GET** `/api/users` - Get all users (Admin only)
+- **GET** `/api/users/stats` - Get user statistics (Admin only)
+
+#### Bounty Endpoints:
+- **POST** `/api/bounties` - Create new bounty (Admin only)
+- **GET** `/api/bounties` - Get all bounties
+- **GET** `/api/bounties?status=OPEN` - Filter bounties by status
+- **GET** `/api/bounties/:id` - Get specific bounty with submissions
+- **PATCH** `/api/bounties/:id` - Update bounty (Admin only)
+- **DELETE** `/api/bounties/:id` - Delete bounty (Admin only)
+- **GET** `/api/bounties/stats` - Get bounty statistics (Admin only)
+
+#### Submission Endpoints:
+- **POST** `/api/submissions` - Submit work for a bounty
+- **GET** `/api/submissions` - Get all submissions (Admin only)
+- **GET** `/api/submissions/my-submissions` - Get user's submissions
+- **GET** `/api/submissions/:id` - Get specific submission
+- **PATCH** `/api/submissions/:id/status` - Approve/reject submission (Admin only)
+- **GET** `/api/submissions/stats` - Get submission statistics (Admin only)
+
+### Testing Flow:
+
+1. **Login as Admin**: Run "Admin Login" to get admin token
+2. **Create Bounty**: Use "Create Bounty (Admin Only)" 
+3. **Login as Analyst**: Run "Analyst Login" to get analyst token
+4. **View Bounties**: Use "Get All Bounties" as analyst
+5. **Submit Work**: Use "Create Submission" for the bounty
+6. **Switch to Admin**: Use admin token to approve/reject submissions
+
+The collection automatically stores tokens and IDs for seamless testing.
+
+## 🌐 Deployment
+
+### Deploy to Railway
+
+1. **Create Railway Account**: Sign up at [railway.app](https://railway.app)
+
+2. **Install Railway CLI**:
+```bash
+npm install -g @railway/cli
+railway login
+```
+
+3. **Deploy the Application**:
+```bash
+railway init
+railway add postgresql
+railway deploy
+```
+
+4. **Set Environment Variables** in Railway dashboard:
+```env
+JWT_SECRET=your-production-jwt-secret-key
+NODE_ENV=production
+```
+
+The `DATABASE_URL` will be automatically provided by Railway's PostgreSQL service.
+
+5. **Run Production Migrations**:
+```bash
+railway run npm run prisma:deploy
+railway run npm run prisma:seed
+```
+
+### Deploy to Render
+
+1. **Create Render Account**: Sign up at [render.com](https://render.com)
+
+2. **Create PostgreSQL Database**:
+   - Go to Dashboard → New → PostgreSQL
+   - Note the connection string
+
+3. **Create Web Service**:
+   - Connect your GitHub repository
+   - Set build command: `npm install && npm run build`
+   - Set start command: `npm run start:prod`
+
+4. **Set Environment Variables**:
+```env
+DATABASE_URL=your-render-postgresql-url
+JWT_SECRET=your-production-jwt-secret-key
+NODE_ENV=production
+```
+
+5. **Deploy and Run Migrations**:
+   - The app will auto-deploy on code changes
+   - Run migrations via Render shell or locally with production DB URL
+
+## 📁 Project Structure
+
+```
+src/
+├── common/
+│   ├── decorators/          # Custom decorators (roles)
+│   └── guards/              # Auth guards (JWT, roles)
+├── modules/
+│   ├── auth/                # Authentication module
+│   │   ├── dto/            # Auth DTOs
+│   │   ├── guards/         # Auth guards
+│   │   ├── strategies/     # Passport strategies
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   └── auth.module.ts
+│   ├── users/              # Users module
+│   │   ├── dto/
+│   │   ├── users.controller.ts
+│   │   ├── users.service.ts
+│   │   └── users.module.ts
+│   ├── bounties/           # Bounties module
+│   │   ├── dto/
+│   │   ├── bounties.controller.ts
+│   │   ├── bounties.service.ts
+│   │   └── bounties.module.ts
+│   └── submissions/        # Submissions module
+│       ├── dto/
+│       ├── submissions.controller.ts
+│       ├── submissions.service.ts
+│       └── submissions.module.ts
+├── prisma/
+│   ├── prisma.service.ts
+│   └── prisma.module.ts
+├── app.module.ts
+└── main.ts
+```
+
+## 🔐 API Authentication
+
+All protected routes require a JWT token in the Authorization header:
+
+```
+Authorization: Bearer <jwt_token>
+```
+
+### Role-based Access:
+
+- **Admin**: Can create/update/delete bounties, approve/reject submissions, view all users and platform stats
+- **Analyst/User**: Can view bounties, submit work, view their own submissions
+- **Public**: Can register and login
+
+## 🐛 Troubleshooting
+
+### Database Connection Issues:
+
+1. Ensure PostgreSQL is running: `docker-compose ps`
+2. Check connection string in `.env`
+3. Verify database exists: `docker-compose logs postgres`
+
+### Migration Issues:
+
+```bash
+# Reset database and migrations
+npm run prisma:migrate reset
+npm run prisma:seed
+```
+
+### JWT Token Issues:
+
+1. Ensure `JWT_SECRET` is set in `.env`
+2. Check token expiry (default: 7 days)
+3. Verify Authorization header format
+
+### Permission Denied Errors:
+
+1. Check user role in JWT payload
+2. Ensure proper role decorators on controllers
+3. Verify RolesGuard is applied
+
+## 📝 API Response Examples
+
+### Successful Login Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "clp8f2b3h0000...",
+    "name": "Admin User",
+    "email": "admin@starknet.io",
+    "role": "ADMIN"
+  }
+}
+```
+
+### Bounty Response:
+```json
+{
+  "id": "clp8f2b3h0001...",
+  "title": "Starknet Transaction Analysis",
+  "description": "Analyze transaction patterns...",
+  "reward_amount": 500.0,
+  "status": "OPEN",
+  "created_at": "2024-01-15T10:30:00.000Z",
+  "creator": {
+    "id": "clp8f2b3h0000...",
+    "name": "Admin User",
+    "email": "admin@starknet.io"
+  },
+  "_count": {
+    "submissions": 2
+  }
+}
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.

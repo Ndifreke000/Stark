@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Code2, User, Crown, LogOut, ChevronDown, Trophy, BarChart3, Database, Sparkles, Zap } from 'lucide-react';
+import { Code2, User, Crown, LogOut, ChevronDown, Trophy, BarChart3, Database, Sparkles, Zap, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConnectWallet from './ConnectWallet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,9 +25,9 @@ const Navbar = () => {
 
   const navLinks = [
     { to: '/query', label: 'Query Editor', icon: Code2 },
-    { to: '/dashboard', label: 'Dashboards', icon: BarChart3 },
+    { to: '/dashboard', label: 'Dashboard Builder', icon: BarChart3 },
     { to: '/bounties', label: 'Bounties', icon: Trophy },
-    { to: '/swap', label: 'Swap', icon: Zap },
+    { to: '/docs', label: 'Docs', icon: BookOpen },
   ];
 
   return (

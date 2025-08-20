@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedCard from '../components/ui/AnimatedCard';
 import AnimatedButton from '../components/ui/AnimatedButton';
 import AnimatedInput from '../components/ui/AnimatedInput';
+import { AutoSwapper } from '../components/Swap/AutoSwapper';
 
 const CreateBounty = () => {
-  const { user } = useAuth();
+  const { user, provider, account } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -497,6 +498,20 @@ const CreateBounty = () => {
                         </div>
                       </div>
                     </AnimatedCard>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* AutoSwapper */}
+              <AnimatePresence>
+                {rewardAmount > 0 && provider && account && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                  >
+                    <AutoSwapper provider={provider} account={account} />
                   </motion.div>
                 )}
               </AnimatePresence>

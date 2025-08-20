@@ -17,6 +17,7 @@ import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import { AuthProvider } from './contexts/AuthContext';
 import Bounties from './pages/Bounties';
+import Docs from './pages/Docs';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/premium" element={<Premium />} />
               <Route path="/bounties" element={<Bounties />} />
               <Route path="/swap" element={<SwapPage />} />
+              <Route path="/docs" element={<Docs />} />
             </Routes>
           </main>
           <Toaster position="top-right" />

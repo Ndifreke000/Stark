@@ -26,6 +26,7 @@ const Navbar = () => {
   const navLinks = [
     { to: '/query', label: 'Query Editor', icon: Code2 },
     { to: '/dashboard', label: 'Dashboard Builder', icon: BarChart3 },
+    { to: '/starknet-dashboard', label: 'Starknet Dashboard', icon: Zap },
     { to: '/bounties', label: 'Bounties', icon: Trophy },
     { to: '/docs', label: 'Docs', icon: BookOpen },
   ];
@@ -80,7 +81,7 @@ const Navbar = () => {
           </div>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-4">
             {user && navLinks.map(({ to, label, icon: Icon }, index) => (
               <motion.div
                 key={to}
@@ -94,7 +95,7 @@ const Navbar = () => {
                 >
                   <Link
                     to={to}
-                    className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                    className={`relative inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-300 ${
                       isActive(to)
                         ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
                         : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'

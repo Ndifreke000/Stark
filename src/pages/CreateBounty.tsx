@@ -77,9 +77,23 @@ const CreateBounty = () => {
     
     setIsCreating(true);
     
-    // Mock bounty creation
-    setTimeout(() => {
-      setIsCreating(false);
+    try {
+      const response = await fetch('/api/bounties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          reward: parseFloat(formData.reward),
+          tags: formData.tags.split(',').map(tag => tag.trim()),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create bounty');
+      }
+
       // Reset form or redirect
       setFormData({
         title: '',
@@ -93,7 +107,12 @@ const CreateBounty = () => {
       });
       setErrors({});
       // Show success message
-    }, 2000);
+    } catch (error) {
+      console.error(error);
+      // Show error message
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

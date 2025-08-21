@@ -18,6 +18,7 @@ import SignUp from './pages/SignUp';
 import { AuthProvider } from './contexts/AuthContext';
 import Bounties from './pages/Bounties';
 import Docs from './pages/Docs';
+import StarknetDashboard from './pages/StarknetDashboard';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/query" element={<AdvancedQueryEditorPage />} />
                             <Route path="/dashboard" element={<DashboardBuilder />} />
+              <Route path="/starknet-dashboard" element={<StarknetDashboard />} />
               <Route path="/contracts" element={<ContractVerification />} />
               <Route path="/d/:id" element={<PublicDashboardView />} />
               <Route path="/bounty/:id" element={<BountyDetail />} />

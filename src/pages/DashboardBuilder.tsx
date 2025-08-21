@@ -13,6 +13,7 @@ import AnimatedButton from '../components/ui/AnimatedButton';
 import { Responsive, WidthProvider, Layout, Layouts } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import SavedQueries from '../components/SavedQueries';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
 
@@ -65,6 +66,25 @@ const DashboardBuilder = () => {
   const [isMinting, setIsMinting] = useState(false);
   const [searchParams] = useSearchParams();
   const [copied, setCopied] = useState(false);
+
+  const addWidgetFromSavedQuery = (savedQuery: any) => {
+    const newWidget: ChartWidget = {
+      id: Date.now().toString(),
+      type: savedQuery.visualizationType as WidgetType,
+      title: savedQuery.name,
+      query: savedQuery.query,
+      data: null,
+      config: {
+        xAxis: '',
+        yAxis: '',
+        aggregation: 'sum',
+      },
+      position: { x: 0, y: 0, w: 4, h: 8 },
+    };
+
+    setSelectedWidget(newWidget);
+    setShowWidgetEditor(true);
+  };
 
   useEffect(() => {
     const id = searchParams.get('dashId');
@@ -296,7 +316,7 @@ const DashboardBuilder = () => {
             </motion.div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 gap-2">
             <motion.div className="flex items-center gap-3 text-sm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <motion.label className="inline-flex items-center gap-2 cursor-pointer" whileHover={{ scale: 1.05 }}>
                 <input type="checkbox" checked={Boolean((dashboard as any).isPublic)} onChange={(e) => setDashboard(prev => ({ ...prev, isPublic: e.target.checked }))} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
@@ -323,7 +343,7 @@ const DashboardBuilder = () => {
         <div className="flex items-center space-x-4">
           <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Sparkles className="w-4 h-4" />Add Widget:</span>
           {chartTypes.map(({ type, name, icon: Icon, color }, index) => (
-            <motion.button key={type} onClick={() => createWidget(type)} className={`flex items-center space-x-2 px-3 py-2 bg-gradient-to-r ${color} text-white rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}>
+            <motion.button key={type} onClick={() => createWidget(type as WidgetType)} className={`flex items-center space-x-2 px-3 py-2 bg-gradient-to-r ${color} text-white rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}>
               <Icon className="h-4 w-4" />
               <span>{name}</span>
             </motion.button>
@@ -333,6 +353,7 @@ const DashboardBuilder = () => {
 
       {/* Dashboard Grid */}
       <div className="p-4">
+        <SavedQueries onAddWidget={addWidgetFromSavedQuery} />
         <div id="dashboard-capture">
           {dashboard.widgets.length === 0 ? (
             <motion.div className="text-center py-16" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>

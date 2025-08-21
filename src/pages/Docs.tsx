@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Database, BarChart3, ExternalLink } from 'lucide-react';
+import { BookOpen, Database, BarChart3, ExternalLink, Zap } from 'lucide-react';
 import AnimatedCard from '../components/ui/AnimatedCard';
 
 const Docs = () => {
@@ -87,6 +87,35 @@ const Docs = () => {
                 </li>
                 <li>
                   <span className="font-bold">Explore Bounties:</span> Participate in data analysis bounties, or create your own to get the insights you need.
+                </li>
+              </ol>
+            </div>
+          </AnimatedCard>
+
+          <AnimatedCard glow={true} gradient={true}>
+            <div className="p-8">
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Zap className="w-8 h-8 mr-3 text-yellow-500" />
+                Understanding the Sepolia RPC
+              </h2>
+              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+                The Sepolia RPC is a critical component for developers building on Starknet. RPC (Remote Procedure Call) is a protocol that allows a program on one computer to execute a program on another computer without needing to understand the network's details. In the context of Starknet, the Sepolia RPC provides a gateway to the Sepolia testnet, which is a public testing environment for Starknet applications.
+              </p>
+              <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
+                When you interact with the Sepolia testnet, you are not directly connecting to the blockchain. Instead, you are sending requests to an RPC endpoint, which is a URL that provides access to a Starknet node. This node is a computer that is connected to the Starknet network and can execute transactions, query data, and perform other operations.
+              </p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                How It Works
+              </h3>
+              <ol className="list-decimal list-inside space-y-4 text-lg text-gray-700 dark:text-gray-300">
+                <li>
+                  <span className="font-bold">Request:</span> Your application sends a request to the Sepolia RPC endpoint. This request is a JSON object that specifies the operation you want to perform, such as sending a transaction or querying a smart contract.
+                </li>
+                <li>
+                  <span className="font-bold">Execution:</span> The RPC node receives the request and executes the specified operation on the Sepolia testnet.
+                </li>
+                <li>
+                  <span className="font-bold">Response:</span> The RPC node sends a response back to your application, which contains the result of the operation. This response is also a JSON object.
                 </li>
               </ol>
             </div>

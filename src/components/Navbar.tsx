@@ -38,10 +38,10 @@ const Navbar = () => {
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+      <div className="max-w-full mx-auto px-6 sm:px-8 lg:px-12">
+        <div className="flex justify-between items-center h-16 w-full">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink-0">
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -81,7 +81,7 @@ const Navbar = () => {
           </div>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-6 flex-grow justify-center">
             {user && navLinks.map(({ to, label, icon: Icon }, index) => (
               <motion.div
                 key={to}
@@ -127,7 +127,7 @@ const Navbar = () => {
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4 flex-shrink-0">
             {user ? (
               <>
                 {/* Premium Badge */}
@@ -143,7 +143,7 @@ const Navbar = () => {
                   >
                     <Link 
                       to="/premium" 
-                      className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white text-sm font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                      className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                     >
                       <motion.div
                         animate={{ rotate: [0, 360] }}
@@ -180,7 +180,7 @@ const Navbar = () => {
                 >
                   <Link
                     to="/create-bounty"
-                    className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                    className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                   >
                     <motion.div
                       animate={{ 
@@ -191,7 +191,7 @@ const Navbar = () => {
                     >
                       <Trophy className="w-4 h-4" />
                     </motion.div>
-                    Create Bounty
+                    Create
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-400 opacity-0 hover:opacity-20"
                       animate={{

@@ -1,14 +1,52 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { HttpService } from '@nestjs/axios';
 import { RpcProvider, Contract } from 'starknet';
+import { firstValueFrom } from 'rxjs';
+import * as starknet from 'starknet';
 
 @Injectable()
 export class StarknetService {
   private readonly provider: RpcProvider;
 
-  constructor() {
+  constructor(
+    private configService: ConfigService,
+    private httpService: HttpService,
+  ) {
+    const nodeUrl = this.configService.get<string>('STARKNET_RPC_URL');
     this.provider = new RpcProvider({
-      nodeUrl: 'https://e8eeb24f808b.ngrok-free.app',
+      nodeUrl,
     });
+  }
+
+  async executeQuery(query: string) {
+    const rpcUrl = this.configService.get<string>('STARKNET_RPC_URL');
+    if (!rpcUrl) {
+      throw new Error('STARKNET_RPC_URL is not defined');
+    }
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(rpcUrl, {
+          jsonrpc: '2.0',
+          method: 'starknet_call',
+          params: [
+            {
+              contract_address:
+                '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+              entry_point_selector:
+                '0x0361458367e696363fbcc70777d0c70f7cf410932ab37d9a53d920fa56551b',
+              calldata: [],
+            },
+            'latest',
+          ],
+          id: 0,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error executing query:', error);
+      throw new Error('Failed to execute query');
+    }
   }
 
   async getContractData(address: string) {
@@ -29,6 +67,22 @@ export class StarknetService {
     } catch (error) {
       console.error('Error fetching contract data:', error);
       throw new Error('Failed to fetch contract data');
+    }
+  }
+
+  async getHealth() {
+    try {
+      await this.provider.getBlockNumber();
+      return {
+        status: 'ok',
+        nodeUrl: this.configService.get<string>('STARKNET_RPC_URL'),
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        nodeUrl: this.configService.get<string>('STARKNET_RPC_URL'),
+        error: error.message,
+      };
     }
   }
 }

@@ -17,4 +17,10 @@ export class QueriesController {
   async getSavedQueries(@Req() req) {
     return this.queriesService.getSavedQueries(req.user.userId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('execute')
+  async executeQuery(@Body() data: { query: string }, @Req() req) {
+    return this.queriesService.executeQuery(data.query, req.user.userId);
+  }
 }

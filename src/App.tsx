@@ -32,8 +32,8 @@ function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
               <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/query" element={<AdvancedQueryEditorPage />} />
-                            <Route path="/dashboard" element={<DashboardBuilder />} />
+              <Route path="/query-editor" element={<AdvancedQueryEditorPage />} />
+              <Route path="/dashboard" element={<DashboardBuilder />} />
               <Route path="/starknet-dashboard" element={<StarknetDashboard />} />
               <Route path="/contracts" element={<ContractVerification />} />
               <Route path="/d/:id" element={<PublicDashboardView />} />

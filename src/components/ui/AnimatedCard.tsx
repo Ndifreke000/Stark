@@ -7,9 +7,6 @@ interface AnimatedCardProps {
   hover?: boolean;
   delay?: number;
   direction?: 'up' | 'down' | 'left' | 'right';
-  rotation?: boolean;
-  glow?: boolean;
-  gradient?: boolean;
   onClick?: () => void;
 }
 
@@ -19,9 +16,6 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
   hover = true,
   delay = 0,
   direction = 'up',
-  rotation = false,
-  glow = false,
-  gradient = false,
   onClick
 }) => {
   const directionVariants = {
@@ -31,9 +25,9 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
     right: { x: -50, opacity: 0 }
   };
 
-  const baseClasses = `group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 p-5 md:p-6 ${
+  const baseClasses = `bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 ${
     onClick ? 'cursor-pointer' : ''
-  } ${gradient ? 'bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900' : ''}`;
+  }`;
 
   return (
     <motion.div
@@ -47,15 +41,11 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
         stiffness: 100, 
         damping: 10 
       }}
-      whileHover={{}}
+      whileHover={hover ? { y: -5, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" } : {}}
       whileTap={onClick ? { scale: 0.98 } : {}}
       onClick={onClick}
-      style={{ transformStyle: "preserve-3d" }}
     >
-      {/* Content */}
-      <div className="relative z-10">
-        {children}
-      </div>
+      {children}
     </motion.div>
   );
 };

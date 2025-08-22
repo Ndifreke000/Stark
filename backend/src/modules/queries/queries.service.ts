@@ -27,4 +27,9 @@ export class QueriesService {
       },
     });
   }
+
+  async executeQuery(query: string, userId: string) {
+    // Logic to execute the SQL query
+    return this.prisma.$queryRaw(query);
+  }
 }

@@ -83,19 +83,21 @@ const QueryEditor = () => {
             </AnimatedCard>
           </div>
           <div className="lg:col-span-3 space-y-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <AnimatedCard className="p-0 overflow-hidden">
               <div className="p-4 border-b dark:border-gray-700">
                 <h3 className="font-semibold">SQL Editor</h3>
               </div>
-              <Editor
-                height="40vh"
-                defaultLanguage="sql"
-                defaultValue={query}
-                onChange={(value) => setQuery(value || '')}
-                theme={document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'}
-                options={{ minimap: { enabled: false } }}
-              />
-            </div>
+              <div className="h-[40vh]">
+                <Editor
+                  height="100%"
+                  defaultLanguage="sql"
+                  defaultValue={query}
+                  onChange={(value) => setQuery(value || '')}
+                  theme={document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'}
+                  options={{ minimap: { enabled: false } }}
+                />
+              </div>
+            </AnimatedCard>
             {results.length > 0 && (
               <AnimatedCard>
                 <div className="p-4">

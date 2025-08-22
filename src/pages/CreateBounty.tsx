@@ -80,7 +80,7 @@ const CreateBounty = () => {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <form onSubmit={handleSubmit}>
           <div className="space-y-8">
-            <AnimatedCard className="p-6">
+            <AnimatedCard className="p-8">
               <div className="space-y-6">
                 <AnimatedInput
                   label="Bounty Title"
@@ -91,20 +91,18 @@ const CreateBounty = () => {
                   placeholder="e.g., Analyze DeFi TVL trends"
                   required
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full p-2 border rounded-lg"
-                    placeholder="Describe the bounty..."
-                  />
-                </div>
+                <AnimatedInput
+                  label="Description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  error={errors.description}
+                  placeholder="Describe the bounty..."
+                  required
+                />
               </div>
             </AnimatedCard>
-            <AnimatedCard className="p-6">
+            <AnimatedCard className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <AnimatedInput
                   label="Reward Amount"

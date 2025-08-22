@@ -78,31 +78,35 @@ const CreateBounty = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-8">
-            <AnimatedCard className="p-8">
-              <div className="space-y-6">
-                <AnimatedInput
-                  label="Bounty Title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  error={errors.title}
-                  placeholder="e.g., Analyze DeFi TVL trends"
-                  required
-                />
-                <AnimatedInput
-                  label="Description"
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <AnimatedCard>
+            <div className="p-8 space-y-6">
+              <h3 className="text-xl font-semibold">Bounty Details</h3>
+              <AnimatedInput
+                label="Bounty Title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                error={errors.title}
+                placeholder="e.g., Analyze DeFi TVL trends"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  error={errors.description}
-                  placeholder="Describe the bounty..."
-                  required
+                  rows={4}
+                  className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700"
+                  placeholder="Describe the bounty in detail..."
                 />
               </div>
-            </AnimatedCard>
-            <AnimatedCard className="p-8">
+            </div>
+          </AnimatedCard>
+          <AnimatedCard>
+            <div className="p-8 space-y-6">
+              <h3 className="text-xl font-semibold">Reward & Deadline</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <AnimatedInput
                   label="Reward Amount"
@@ -124,12 +128,12 @@ const CreateBounty = () => {
                   required
                 />
               </div>
-            </AnimatedCard>
-            <div className="flex justify-end">
-              <AnimatedButton type="submit" size="lg" loading={isCreating} disabled={isCreating}>
-                Create Bounty
-              </AnimatedButton>
             </div>
+          </AnimatedCard>
+          <div className="flex justify-end">
+            <AnimatedButton type="submit" size="lg" loading={isCreating} disabled={isCreating}>
+              Create Bounty
+            </AnimatedButton>
           </div>
         </form>
       </main>

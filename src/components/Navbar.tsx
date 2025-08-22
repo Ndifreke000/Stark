@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const { user, signOut, disconnect } = useAuth();
+  console.log('User in Navbar:', user);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();

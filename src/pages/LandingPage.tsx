@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Code2, Trophy, TrendingUp, ArrowRight, Sparkles, Users, DollarSign, Database, Zap, Star, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import RpcStatus from '../components/RpcStatus';
 
 const LandingPage = () => {
   const stats = {
@@ -79,7 +80,7 @@ const LandingPage = () => {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 10
       }
@@ -91,7 +92,7 @@ const LandingPage = () => {
     transition: {
       duration: 6,
       repeat: Infinity,
-      ease: "easeInOut"
+      ease: "easeInOut" as const
     }
   };
 
@@ -112,7 +113,7 @@ const LandingPage = () => {
               transition: {
                 duration: 8,
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: "easeInOut" as const
               }
             }}
           />
@@ -124,7 +125,7 @@ const LandingPage = () => {
               transition: {
                 duration: 20,
                 repeat: Infinity,
-                ease: "linear"
+                ease: "linear" as const
               }
             }}
           />
@@ -148,7 +149,7 @@ const LandingPage = () => {
             >
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" as const }}
               >
                 <Sparkles className="w-4 h-4" />
               </motion.div>
@@ -168,7 +169,7 @@ const LandingPage = () => {
                 transition={{
                   duration: 5,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: "linear" as const
                 }}
                 style={{
                   backgroundSize: "200% 200%"
@@ -245,6 +246,10 @@ const LandingPage = () => {
               </motion.div>
             </motion.div>
 
+            <motion.div className="max-w-md mx-auto mb-16" variants={itemVariants}>
+              <RpcStatus />
+            </motion.div>
+
             {/* Animated Stats */}
             <motion.div 
               className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto"
@@ -264,7 +269,7 @@ const LandingPage = () => {
                     scale: 1.1,
                     y: -5
                   }}
-                  transition={{ type: "spring", stiffness: 300 }}
+                  transition={{ type: "spring" as const, stiffness: 300 }}
                 >
                   <motion.div
                     className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-3 group-hover:shadow-lg transition-all duration-300"
@@ -277,7 +282,7 @@ const LandingPage = () => {
                     className={`text-4xl md:text-5xl font-black ${stat.color} mb-2`}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
+                    transition={{ delay: index * 0.1, type: "spring" as const, stiffness: 200 }}
                   >
                     {stat.value}
                   </motion.div>
@@ -301,7 +306,7 @@ const LandingPage = () => {
           transition={{
             duration: 20,
             repeat: Infinity,
-            ease: "linear"
+            ease: "linear" as const
           }}
           style={{
             backgroundSize: "400% 400%"
@@ -329,7 +334,7 @@ const LandingPage = () => {
                 transition={{
                   duration: 3,
                   repeat: Infinity,
-                  ease: "linear"
+                  ease: "linear" as const
                 }}
                 style={{
                   backgroundSize: "200% 200%"
@@ -358,7 +363,7 @@ const LandingPage = () => {
                 transition={{ delay: feature.delay, duration: 0.8 }}
                 whileHover={{ 
                   y: -10,
-                  transition: { type: "spring", stiffness: 300 }
+                  transition: { type: "spring" as const, stiffness: 300 }
                 }}
               >
                 <motion.div 
@@ -494,7 +499,7 @@ const LandingPage = () => {
                   y: -15,
                   rotateY: 5,
                   scale: 1.02,
-                  transition: { type: "spring", stiffness: 300 }
+                  transition: { type: "spring" as const, stiffness: 300 }
                 }}
                 style={{ transformStyle: "preserve-3d" }}
               >
@@ -508,11 +513,11 @@ const LandingPage = () => {
                     animate={{
                       backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
                     }}
-                    transition={{
-                      duration: 8,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "linear" as const
+                }}
                     style={{
                       backgroundSize: "200% 200%"
                     }}
@@ -549,7 +554,7 @@ const LandingPage = () => {
                         transition={{
                           duration: 3,
                           repeat: Infinity,
-                          ease: "linear"
+                          ease: "linear" as const
                         }}
                         style={{
                           backgroundSize: "200% 200%"
@@ -626,7 +631,7 @@ const LandingPage = () => {
             scale: [1, 1.2, 1]
           }}
           transition={{
-            rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+            rotate: { duration: 20, repeat: Infinity, ease: "linear" as const },
             scale: { duration: 4, repeat: Infinity }
           }}
         />
@@ -637,7 +642,7 @@ const LandingPage = () => {
             y: [-10, 10, -10]
           }}
           transition={{
-            rotate: { duration: 15, repeat: Infinity, ease: "linear" },
+            rotate: { duration: 15, repeat: Infinity, ease: "linear" as const },
             y: { duration: 6, repeat: Infinity }
           }}
         />

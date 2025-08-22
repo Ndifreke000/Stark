@@ -1,21 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Crown, Play, Save, Lock, Download, Database, BookOpen, Sparkles, History } from 'lucide-react';
+import { Crown, Play, Save, Lock, Download, Database, BookOpen, Sparkles, History, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { io, Socket } from 'socket.io-client';
+import { createQuery, saveQueryResult, getQueries, type QueryResult } from '../services/queryStore';
 
 interface WebSocketMessage {
   type: 'query_result' | 'error';
   payload: any;
   duration?: number;
-}
-
-interface SavedQuery {
-  id: number;
-  name: string;
-  query: string;
-  created_at: string;
 }
 
 interface QueryHistoryItem {
@@ -35,7 +29,7 @@ const QueryEditor = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [savedQueries, setSavedQueries] = useState<Array<{ id: number; name: string; query: string; created_at: string }>>([]);
+  const [savedQueries, setSavedQueries] = useState<any[]>([]);
   const [queryHistory, setQueryHistory] = useState<Array<{ query: string; timestamp: Date; status: 'success' | 'error'; duration: number }>>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
